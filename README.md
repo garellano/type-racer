@@ -25,3 +25,8 @@ Pages. El repositorio es público.
 
 La propuesta completa y las decisiones pendientes están en
 [docs/concepto.md](docs/concepto.md).
+
+La [evaluación de sincronización](docs/sincronizacion.md) recomienda Cloudflare
+Workers y Durable Objects con WebSockets, con costo esperado de USD 0 para el
+uso del equipo. Incluye alternativas, cuotas y pruebas de latencia propuestas
+para US, Irlanda y México. El proveedor aún no está contratado.

@@ -88,8 +88,11 @@ conexión se pierde. El ganador procede del estado confirmado, no de la animaci�
 
 GitHub Pages aloja archivos estáticos: la interfaz, los recursos visuales y el
 programa que ejecuta cada navegador. Necesitamos además un servicio compartido
-para salas y carreras en vivo. Su proveedor se elegirá al implementar, según
-simplicidad, disponibilidad y costo.
+para salas y carreras en vivo. La recomendación es Cloudflare Workers y un
+Durable Object por sala, con WebSockets, empezando en el plan gratuito. La
+[evaluación de sincronización](sincronizacion.md) compara alternativas, estima
+consumo y plantea pruebas entre US, Irlanda y México. Es una propuesta pendiente
+de aceptar, no un servicio ya contratado.
 
 Responsabilidades del servicio:
 
@@ -102,11 +105,11 @@ Responsabilidades del servicio:
 - Compartir posiciones y confirmar el ganador una sola vez de forma atómica.
 - Reconectar a un jugador a su estado confirmado y cerrar salas inactivas.
 
-Propuesta: actualización de estado cada 100–150 ms, más una actualización
-inmediata al finalizar. La visualización corre independientemente de esa
-frecuencia. La clasificación final usa el orden confirmado por el servicio; los
-eventos indistinguibles según la resolución definida se mostrarán como empate.
-Una competencia casual no garantiza neutralizar toda diferencia de latencia.
+Propuesta: actualización agrupada del estado hasta cada 100 ms cuando hay
+cambios, más una actualización inmediata al finalizar. La visualización corre
+independientemente de esa frecuencia. El primer evento válido de finalización
+recibido por la sala determina el ganador y cierra la ronda una sola vez. Una
+competencia casual no garantiza neutralizar toda diferencia de latencia.
 
 Enlaces de sala con códigos difíciles de adivinar y sin listado público. El
 código fuente público no implica publicar nombres o partidas. Propuesta:
