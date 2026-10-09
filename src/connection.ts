@@ -40,6 +40,7 @@ export class RaceConnection {
 
   send(message: ClientMessage): boolean {
     if (this.socket?.readyState !== WebSocket.OPEN) return false;
+    if (message.type !== "hello" && this.status !== "connected") return false;
     this.socket.send(JSON.stringify(message));
     return true;
   }
@@ -67,11 +68,6 @@ export class RaceConnection {
       this.bestRtt = Infinity;
       this.clockReady = false;
       this.send({ type: "hello", session: this.session });
-      const ping = () => {
-        this.send({ type: "ping", sentAt: performance.now() });
-      };
-      for (const delay of [0, 250, 500]) this.initialPings.push(setTimeout(ping, delay));
-      this.pingTimer = setInterval(ping, 60000);
     });
     socket.addEventListener("message", (event: MessageEvent<unknown>) => {
       if (typeof event.data !== "string") return;
@@ -108,6 +104,14 @@ export class RaceConnection {
       this.lastSnapshotAt = performance.now();
       this.retry = 0;
       this.changeStatus("connected");
+      // The first authenticated snapshot acknowledges hello before any other command is sent.
+      if (this.pingTimer === undefined) {
+        const ping = () => {
+          this.send({ type: "ping", sentAt: performance.now() });
+        };
+        for (const delay of [0, 250, 500]) this.initialPings.push(setTimeout(ping, delay));
+        this.pingTimer = setInterval(ping, 60000);
+      }
       this.onSnapshot(message.state);
     });
     socket.addEventListener("close", (event) => {
