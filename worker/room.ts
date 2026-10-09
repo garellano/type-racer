@@ -1,12 +1,12 @@
 import { DurableObject } from "cloudflare:workers";
 import { z } from "zod";
+import { PASSAGES } from "../shared/passages";
 import {
   clientMessageSchema,
   correctPrefix,
   COUNTDOWN_MS,
   MAX_MESSAGE_BYTES,
   MAX_PLAYERS,
-  PASSAGES,
   RACE_TIMEOUT_MS,
   ROOM_LIFETIME_MS,
   snapshotSchema,
@@ -151,6 +151,7 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
       winnerId: null,
       finishAt: null,
       outcome: null,
+      language: "english",
       passage: "",
       expiresAt: Date.now() + ROOM_LIFETIME_MS,
       players: [{ id: session.playerId, name, secretHash, ready: false, progress: 0, sequence: 0 }],
@@ -297,6 +298,17 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
       }
       if (state.hostId !== playerId)
         throw new RoomError(403, "Only the host can control the race.");
+      if (message.type === "configure") {
+        if (state.phase !== "lobby")
+          throw new RoomError(409, "Change the language in the lobby before the next round.");
+        if (state.language === message.language) return;
+        state.language = message.language;
+        // Readiness belongs to the chosen challenge; changing it clears previous ready marks.
+        for (const item of state.players) item.ready = false;
+        this.commit(state);
+        this.broadcast();
+        return;
+      }
       if (message.type === "start") {
         if (state.phase !== "lobby") throw new RoomError(409, "The race is already underway.");
         if (
@@ -309,7 +321,8 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
           );
         }
         const choice = crypto.getRandomValues(new Uint32Array(1))[0] ?? 0;
-        state.passage = PASSAGES[choice % PASSAGES.length] ?? PASSAGES[0];
+        const passages = PASSAGES[state.language];
+        state.passage = passages[choice % passages.length] ?? passages[0];
         state.raceId = crypto.randomUUID();
         state.phase = "countdown";
         state.startAt = now + COUNTDOWN_MS;

@@ -8,6 +8,7 @@ import {
 } from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
+import { PASSAGES, RACE_LANGUAGES } from "../shared/passages";
 import {
   admissionSchema,
   serverMessageSchema,
@@ -149,11 +150,15 @@ afterEach(async () => {
 });
 
 describe("authoritative multiplayer races", () => {
-  it("gives eight clients the same start and exactly one durable winner for concurrent finishes", async () => {
+  it("gives eight Java racers the same start and exactly one durable winner for concurrent finishes", async () => {
     const { admissions, probes, roomId } = await room(8);
+    probes[0]?.send({ type: "configure", language: "java" });
+    await Promise.all(probes.map((probe) => probe.snapshot((state) => state.language === "java")));
     const starts = await countdown(probes);
     expect(new Set(starts.map((state) => state.startAt)).size).toBe(1);
     expect(new Set(starts.map((state) => state.raceId)).size).toBe(1);
+    expect(new Set(starts.map((state) => state.passage)).size).toBe(1);
+    expect(starts.every((state) => PASSAGES.java.includes(state.passage))).toBe(true);
     const start = starts[0];
     if (!start?.raceId) throw new Error("Missing race.");
     probes.forEach((probe) =>
@@ -195,12 +200,94 @@ describe("authoritative multiplayer races", () => {
     const restored = await connect(admissions[0]!);
     const persisted = await restored.snapshot((state) => state.phase === "finished");
     expect(persisted.winnerId).toBe(results[0]?.winnerId);
+    expect(persisted.language).toBe("java");
+    expect(persisted.passage).toBe(start.passage);
     for (const probe of probes) {
       const winnerIds = probe.messages.flatMap((message) =>
         message.type === "snapshot" && message.state.winnerId ? [message.state.winnerId] : [],
       );
       expect(new Set(winnerIds).size).toBe(1);
     }
+  });
+
+  it.each(RACE_LANGUAGES)(
+    "shares and freezes the %s choice, retaining it after reset and recovery",
+    async (language) => {
+      const { admissions, probes, roomId } = await room(2);
+      const host = probes[0];
+      if (!host) throw new Error("Missing host.");
+      // Begin in a different mode so every selection exercises readiness invalidation.
+      host.send({ type: "configure", language: language === "english" ? "spanish" : "english" });
+      for (const probe of probes) probe.send({ type: "ready", ready: true });
+      const ready = await host.snapshot((state) => state.players.every((player) => player.ready));
+      host.send({ type: "configure", language });
+      const selections = await Promise.all(
+        probes.map((probe) =>
+          probe.snapshot((state) => state.version > ready.version && state.language === language),
+        ),
+      );
+      expect(selections.every((state) => state.players.every((player) => !player.ready))).toBe(
+        true,
+      );
+      host.send({ type: "start" });
+      expect(await host.waitFor((message) => message.type === "error")).toMatchObject({
+        code: "409",
+      });
+      const starts = await countdown(probes);
+      expect(starts.every((state) => state.language === language)).toBe(true);
+      expect(new Set(starts.map((state) => state.passage)).size).toBe(1);
+      const start = starts[0];
+      if (!start) throw new Error("Missing race.");
+      expect(PASSAGES[language]).toContain(start.passage);
+      host.send({ type: "configure", language: language === "java" ? "spanish" : "java" });
+      expect(
+        await host.waitFor(
+          (message) => message.type === "error" && message.message.includes("Change the language"),
+        ),
+      ).toMatchObject({ code: "409" });
+      await changeTime(roomId, "start");
+      await changeTime(roomId, "deadline");
+      const ended = await host.snapshot((state) => state.phase === "finished");
+      expect(ended.language).toBe(language);
+      expect(ended.passage).toBe(start.passage);
+      host.send({ type: "reset" });
+      await host.snapshot((state) => state.phase === "lobby" && state.version > ended.version);
+      await evictDurableObject(env.ROOMS.getByName(roomId));
+      const restored = await connect(admissions[0]!);
+      const recovered = await restored.snapshot((state) => state.phase === "lobby");
+      expect(recovered.language).toBe(language);
+      expect(recovered.passage).toBe("");
+      expect(recovered.players.every((player) => !player.ready)).toBe(true);
+    },
+  );
+
+  it("restores older rooms without a language field as English", async () => {
+    const { admissions, roomId } = await room(2);
+    const stub = env.ROOMS.getByName(roomId);
+    await runInDurableObject(stub, (_instance, context) => {
+      const row = context.storage.sql
+        .exec<{ value: string }>("SELECT value FROM room WHERE id = 1")
+        .one();
+      const stored = z.record(z.string(), z.unknown()).parse(JSON.parse(row.value));
+      delete stored.language;
+      context.storage.sql.exec("UPDATE room SET value = ? WHERE id = 1", JSON.stringify(stored));
+    });
+    await evictDurableObject(stub);
+    const restored = await connect(admissions[0]!);
+    const recovered = await restored.snapshot((state) => state.phase === "lobby");
+    expect(recovered.language).toBe("english");
+    restored.send({ type: "ready", ready: true });
+    await restored.snapshot((state) => state.players[0]?.ready === true);
+    const saved = await runInDurableObject(
+      stub,
+      (_instance, context) =>
+        context.storage.sql
+          .exec<{
+            language: string;
+          }>("SELECT json_extract(value, '$.language') AS language FROM room WHERE id = 1")
+          .one().language,
+    );
+    expect(saved).toBe("english");
   });
 
   it("validates correct prefixes, ignores old packets, and recovers progress after hibernation", async () => {
@@ -245,9 +332,20 @@ describe("authoritative multiplayer races", () => {
         })
       ).status,
     ).toBe(403);
-    probes[1]?.send({ type: "start" });
+    probes[1]?.send({ type: "configure", language: "java" });
     const denied = await probes[1]?.waitFor((message) => message.type === "error");
     expect(denied).toMatchObject({ type: "error", code: "403" });
+    probes[2]?.send({ type: "start" });
+    expect(await probes[2]?.waitFor((message) => message.type === "error")).toMatchObject({
+      code: "403",
+    });
+    expect((await probes[0]?.snapshot((state) => state.phase === "lobby"))?.language).toBe(
+      "english",
+    );
+    probes[3]?.socket.send(JSON.stringify({ type: "configure", language: "python" }));
+    expect(await probes[3]?.waitFor((message) => message.type === "error")).toMatchObject({
+      code: "invalid_message",
+    });
     expect((await request("/rooms", { name: "<script>" })).status).toBe(400);
     expect((await request("/rooms", { name: "x".repeat(1100) })).status).toBe(413);
     expect(

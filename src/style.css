@@ -19,6 +19,7 @@ body {
 }
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -54,6 +55,7 @@ button[data-ready="true"] {
   border-color: #a3b58d;
 }
 input,
+select,
 textarea {
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -66,6 +68,7 @@ textarea {
   outline-offset: 3px;
 }
 input:disabled,
+select:disabled,
 textarea:disabled {
   background: #ededdf;
 }
@@ -239,6 +242,15 @@ label {
   display: flex;
   gap: 8px;
 }
+.language-choice {
+  display: grid;
+  gap: 6px;
+  flex: 0 1 260px;
+}
+.language-choice span {
+  font-size: 11px;
+  color: var(--muted);
+}
 .race-layout {
   display: grid;
   grid-template-columns: 1.08fr 1fr;
@@ -377,6 +389,11 @@ label {
 .correct {
   color: #2f7953;
   background: #e9f0d8;
+}
+.code-passage {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+  tab-size: 2;
 }
 .wrong {
   color: #a1362d;

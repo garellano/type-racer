@@ -7,6 +7,7 @@ Type Racer is a short multiplayer typing race for 2–8 standup participants. Th
 ## Language and design
 
 - Write source code, comments, documentation, commit messages, and interface copy in English.
+- Gameplay passages may use the selected race language (English, Spanish, or Java). Keep identifiers and explanations in English; do not translate the interface with the passage.
 - Use TypeScript with strict checking. Treat external data as unknown and validate it at the boundary.
 - Prefer small, explicit modules and platform APIs. Avoid speculative abstractions, unnecessary dependencies, and mutable global server state.
 - Keep presentation separate from transport and race rules. Share protocol schemas between the browser and Worker.
@@ -15,6 +16,7 @@ Type Racer is a short multiplayer typing race for 2–8 standup participants. Th
 ## Multiplayer correctness
 
 - One SQLite-backed Durable Object owns each room. The server controls the race epoch, start time, valid progress, and final result.
+- Only the host chooses a race language in the lobby. Changing it clears readiness; freeze both the language and shared passage for the round.
 - Never trust client coordinates, finish times, player identities, or host claims. Authenticate sessions and validate every message.
 - Make winner selection and persistence synchronous and atomic. Do not await external work between reading race state and committing a winner.
 - Ignore stale or duplicate progress messages. Persist essential state before broadcasting it.

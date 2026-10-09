@@ -4,6 +4,8 @@ import { WebSocket } from "ws";
 
 const api = process.argv[2] || "http://127.0.0.1:8787";
 const origin = process.argv[3] || "http://127.0.0.1:5173";
+const language = process.argv[4] || "english";
+assert(["english", "spanish", "java"].includes(language), "Choose english, spanish, or java.");
 const sockets = [];
 
 async function post(path, body) {
@@ -68,6 +70,8 @@ try {
     admissions.push(await post(`/rooms/${host.roomId}/join`, { name: `Smoke Racer ${index + 1}` }));
   const clients = [];
   for (const admission of admissions) clients.push(await connect(admission));
+  if (language !== "english") clients[0].send({ type: "configure", language });
+  await Promise.all(clients.map((client) => client.state((state) => state.language === language)));
   for (const client of clients) client.send({ type: "ready", ready: true });
   await clients[0].state((state) =>
     state.players.every((player) => player.ready && player.connected),
@@ -78,6 +82,11 @@ try {
   );
   assert.equal(new Set(starts.map((state) => state.startAt)).size, 1);
   assert.equal(new Set(starts.map((state) => state.raceId)).size, 1);
+  assert.equal(new Set(starts.map((state) => state.passage)).size, 1);
+  assert(
+    starts.every((state) => state.language === language),
+    "Shared language must match.",
+  );
   const start = starts[0];
   assert(start.startAt > Date.now(), "Countdown must be scheduled in the future.");
   clients[0].send({ type: "progress", raceId: start.raceId, sequence: 1, text: start.passage });
@@ -114,11 +123,14 @@ try {
   const resumed = await connect(host);
   const recovered = await resumed.state((state) => state.phase === "finished");
   assert.equal(recovered.winnerId, finals[0].winnerId);
+  assert.equal(recovered.language, language);
+  assert.equal(recovered.passage, start.passage);
   console.log(
     JSON.stringify(
       {
         status: "passed",
         clients: 8,
+        language,
         sharedStart: new Date(start.startAt).toISOString(),
         sharedWinner: true,
         progressVerified: true,

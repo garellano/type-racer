@@ -6,9 +6,11 @@ A short multiplayer typing race to choose who starts the daily standup.
 
 ## Multiplayer prototype
 
-Create a room, copy its invitation link, and invite 2–8 teammates. Everyone marks ready before the host starts a shared five-second countdown. Correctly typed characters advance the cars. The server confirms one winner, who starts the standup. Reset after a result to race again.
+Create a room, copy its invitation link, and invite 2–8 teammates. The host chooses **English**, **Spanish**, or **Java** in the lobby. Everyone marks ready before the host starts a shared five-second countdown. Correctly typed characters advance the cars. The server confirms one winner, who starts the standup. Reset after a result to race again; the host can keep or change the language.
 
-This milestone tests real multiplayer with simple car graphics. Rich animation, a scrolling camera, a minimap, car selection, and selectable languages are future milestones. Current copy and passages are in English.
+Changing the language clears everyone's readiness. Each round gives every racer the same randomly selected passage. Java uses original small classes with simple methods, loops, conditions, and reserved words. Copy the code exactly; solving or executing it is not required. Read [the passage design](docs/passages.md).
+
+This milestone tests real multiplayer with simple car graphics. Rich animation, a scrolling camera, a minimap, and car selection are future milestones. Interface copy and project documentation are in English; gameplay text follows the chosen language.
 
 - Frontend: vanilla TypeScript and Vite, hosted on GitHub Pages.
 - Coordination: Cloudflare Worker, one SQLite-backed Durable Object per room, and secure hibernating WebSockets.
@@ -38,6 +40,7 @@ Open `http://127.0.0.1:5173/type-racer/`. Open an invitation in a second tab or 
 npm run types          # Regenerate bindings after Wrangler changes
 npm run check          # Types, formatting, Workers tests, and both builds
 npm run smoke -- http://127.0.0.1:8787 http://127.0.0.1:5173
+npm run smoke -- http://127.0.0.1:8787 http://127.0.0.1:5173 java
 ```
 
 ## Deployment
@@ -60,6 +63,8 @@ Update `ALLOWED_ORIGINS` if the frontend host changes. Deploy between races: bac
 A shared server timestamp and clock estimation coordinate the start; Internet latency still exists. The first valid complete passage **received by the server** wins. Close finishes can favor lower latency. This is a casual team game without verified physical-keystroke anti-cheat.
 
 Pasting is blocked in the interface, but a modified client can automate typing. A round ends without a winner if nobody finishes within 90 seconds. The 45–60 second goal depends on typing speed and needs team tuning.
+
+Java reduces reliance on English or Spanish prose, but familiarity with Java and keyboard symbols can still affect results. All participants type identical characters, spaces, case, and punctuation within a round. Different modes are not speed benchmarks against each other.
 
 Rooms are unlisted and payloads/connections are bounded, but comprehensive abuse protection is outside this prototype. Add creation/message rate limits and quota monitoring before broad public promotion.
 

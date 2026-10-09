@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { RACE_LANGUAGES } from "./passages";
 
 export const MAX_PLAYERS = 8;
 export const COUNTDOWN_MS = 5000;
@@ -8,11 +9,7 @@ export const UPDATE_INTERVAL_MS = 100;
 export const MAX_MESSAGE_BYTES = 2048;
 export const TRACK_METERS = 300;
 
-export const PASSAGES = [
-  "The morning sun lights up the track. Eight tiny cars wait for the signal. Find a steady rhythm, and let each correct letter carry you forward. The finish line is close. Take a breath, stay focused, and enjoy the race with your team.",
-  "A fresh cup of coffee sits beside the keyboard. Across the ocean, teammates gather for a quick race before standup. Type with care, correct your mistakes, and keep going. One car will reach the flag first. The whole team gets a bright start.",
-] as const;
-
+export const languageSchema = z.enum(RACE_LANGUAGES);
 export const roomIdSchema = z.uuid();
 export const nameSchema = z
   .string()
@@ -31,6 +28,7 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("hello"), session: sessionSchema }).strict(),
   z.object({ type: z.literal("ping"), sentAt: z.number().finite() }).strict(),
   z.object({ type: z.literal("ready"), ready: z.boolean() }).strict(),
+  z.object({ type: z.literal("configure"), language: languageSchema }).strict(),
   z.object({ type: z.literal("start") }).strict(),
   z.object({ type: z.literal("reset") }).strict(),
   z.object({ type: z.literal("leave") }).strict(),
@@ -66,6 +64,8 @@ export const snapshotSchema = z.object({
   winnerId: z.uuid().nullable(),
   finishAt: z.number().nullable(),
   outcome: z.enum(["completed", "timeout"]).nullable(),
+  // Existing stored rooms and older snapshots predate language selection.
+  language: languageSchema.default("english"),
   passage: z.string(),
   expiresAt: z.number(),
   players: z.array(playerSchema).max(MAX_PLAYERS),

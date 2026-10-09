@@ -1,7 +1,9 @@
 import "./style.css";
+import { LANGUAGE_LABELS } from "../shared/passages";
 import {
   admissionSchema,
   correctPrefix,
+  languageSchema,
   rankPlayers,
   roomIdSchema,
   sessionSchema,
@@ -27,6 +29,7 @@ const readyButton = element<HTMLButtonElement>("#ready");
 const startButton = element<HTMLButtonElement>("#start");
 const resetButton = element<HTMLButtonElement>("#reset");
 const leaveButton = element<HTMLButtonElement>("#leave");
+const languageSelect = element<HTMLSelectElement>("#language");
 const lanes = element<HTMLElement>("#lanes");
 const passage = element<HTMLElement>("#passage");
 const requestedRoom = new URLSearchParams(location.hash.slice(1)).get("room");
@@ -137,6 +140,13 @@ readyButton.addEventListener("click", () => {
   const own = state?.players.find((player) => player.id === session?.playerId);
   connection?.send({ type: "ready", ready: !own?.ready });
 });
+languageSelect.addEventListener("change", () => {
+  clearError();
+  const language = languageSchema.parse(languageSelect.value);
+  connection?.send({ type: "configure", language });
+  // Show only the server-confirmed choice, including if the connection drops during this event.
+  if (state) languageSelect.value = state.language;
+});
 startButton.addEventListener("click", () => {
   clearError();
   connection?.send({ type: "start" });
@@ -187,6 +197,17 @@ function renderState(): void {
   const own = state.players.find((player) => player.id === session?.playerId);
   const host = state.hostId === session.playerId;
   const lobby = state.phase === "lobby";
+  languageSelect.value = state.language;
+  languageSelect.disabled = !host || !lobby || connection?.status !== "connected";
+  element<HTMLElement>("#language-help").textContent = !lobby
+    ? "Locked for this round."
+    : host
+      ? "Changing this clears everyone's readiness."
+      : "Chosen by the host before each round.";
+  passage.classList.toggle("code-passage", state.language === "java");
+  input.classList.toggle("code-passage", state.language === "java");
+  passage.lang = state.language === "spanish" ? "es" : "en";
+  input.lang = passage.lang;
   readyButton.hidden = !lobby;
   readyButton.textContent = own?.ready ? "Ready ✓" : "I'm ready";
   readyButton.dataset.ready = String(own?.ready ?? false);
@@ -205,10 +226,14 @@ function renderState(): void {
       : "Make every letter count.";
   element<HTMLElement>("#challenge-heading").textContent = lobby
     ? "Get ready to race"
-    : "Your next few hundred meters";
+    : `${LANGUAGE_LABELS[state.language]} · your next few hundred meters`;
   element<HTMLElement>("#race-help").textContent = lobby
-    ? "Everyone marks ready. The host starts the shared countdown."
-    : "Type the same text as your teammates. Correct mistakes to keep moving.";
+    ? state.language === "java"
+      ? "A tiny Java class for everyone. Mark ready when you're happy with the mode."
+      : "Everyone marks ready. The host starts the shared countdown."
+    : state.language === "java"
+      ? "Copy the code exactly, including spaces, case, and punctuation. No coding solution needed."
+      : "Type the same text as your teammates. Correct mistakes to keep moving.";
   const ids = new Set(state.players.map((player) => player.id));
   for (const [id, parts] of laneElements) {
     if (!ids.has(id)) {
@@ -346,6 +371,10 @@ function updateClock(): void {
     input.focus();
   }
   readyButton.disabled = connection.status !== "connected";
+  languageSelect.disabled =
+    state.hostId !== session?.playerId ||
+    state.phase !== "lobby" ||
+    connection.status !== "connected";
   startButton.disabled =
     !connection.clockReady ||
     state.players.length < 2 ||
