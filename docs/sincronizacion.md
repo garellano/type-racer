@@ -44,8 +44,8 @@ La estimación no elimina la asimetría de las rutas de Internet.
 
 | Alternativa | Oferta gratuita relevante | Ajuste al proyecto |
 | --- | --- | --- |
-| Cloudflare Durable Objects | 100.000 solicitudes/día; 13.000 GB-s/día; 100.000 filas escritas/día; 5 GB almacenados. Mensajes WebSocket de salida sin cargo de solicitud. | Recomendado: una autoridad por sala y control directo del protocolo. |
-| Firebase Realtime Database, Spark | 100 conexiones simultáneas, 1 GB almacenado y 10 GB descargados/mes. | Alternativa viable para sincronizar progreso con clientes cooperativos. Para lógica propia de servidor, Cloud Functions exige Blaze. |
+| Cloudflare Durable Objects | 100.000 solicitudes/día; 13.000 GB-s/día; 100.000 filas escritas/día; 5 GB almacenados. Mensajes WebSocket de salida sin cargo de solicitud. | Recomendado: una autoridad por sala y control directo del protocolo. Implica escribir el código del coordinador. |
+| Firebase Realtime Database, Spark | 100 conexiones simultáneas, 1 GB almacenado y 10 GB descargados/mes. | Alternativa viable con reglas y transacciones. Si añadimos Cloud Functions para lógica general de servidor, exige Blaze. |
 | Supabase Realtime, Free | 200 conexiones simultáneas; 2 millones de mensajes/mes; límite de 100 mensajes/s. | Viable con agregación, pero la distribución de actualizaciones consume el límite por segundo. Pro desde USD 25/mes. |
 
 Fuentes: [Cloudflare Durable Objects](https://developers.cloudflare.com/durable-objects/platform/pricing/),
@@ -81,9 +81,13 @@ y [estado en memoria](https://developers.cloudflare.com/durable-objects/referenc
 Firebase Realtime Database sí ofrece sincronización útil para juegos y su cuota
 gratuita es suficiente para una sala. La diferencia es de arquitectura: si los
 navegadores publican directamente su avance, las reglas de acceso y la
-validación deben impedir cambios ajenos y resultados arbitrarios. Un árbitro
-con lógica propia requiere añadir un servidor o funciones. Blaze no implica
+validación deben impedir cambios ajenos y resultados arbitrarios. Las reglas y
+transacciones pueden cubrir mecánicas sencillas. Si necesitamos un árbitro que
+ejecute código general, añadiremos un servidor o funciones. Blaze no implica
 necesariamente un gasto por consumo bajo, pero cambia el modelo de facturación.
+
+Fuentes: [reglas de validación](https://firebase.google.com/docs/database/security/rules-conditions)
+y [transacciones](https://firebase.google.com/docs/database/web/read-and-write).
 
 En Supabase, un Broadcast cuenta el envío y las entregas a suscriptores. Con ocho
 jugadores enviando diez actualizaciones por segundo a los otros siete, el
