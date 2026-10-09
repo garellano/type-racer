@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "type-racer-api",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-09",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "minify": true,
+  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "RaceRoom" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RaceRoom"] }],
+  "vars": {
+    "ALLOWED_ORIGINS": "https://garellano.github.io,http://127.0.0.1:5173,http://localhost:5173",
+  },
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "head_sampling_rate": 0.1, "invocation_logs": false },
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 },
+  },
+}

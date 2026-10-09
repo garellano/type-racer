@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#132b28" />
+    <meta
+      name="description"
+      content="A quick multiplayer typing race to start your team's standup."
+    />
+    <title>Type Racer — race into standup</title>
+  </head>
+  <body>
+    <main class="app">
+      <header class="masthead">
+        <a class="brand" href="#">TYPE<span>RACER</span><span class="brand-mark">↗</span></a
+        ><span class="prototype">Multiplayer test · v0.1</span>
+      </header>
+      <section id="entry" class="entry">
+        <p class="eyebrow">A little competition. A better morning.</p>
+        <h1>First to the flag.<br /><span>First to standup.</span></h1>
+        <p class="intro">
+          Grab a lane, invite your team, and type your way to the finish line. One shared start. One
+          winner.
+        </p>
+        <form id="entry-form">
+          <label for="name">Your racer name</label>
+          <div class="entry-controls">
+            <input
+              id="name"
+              name="name"
+              maxlength="24"
+              placeholder="e.g. Alex"
+              required
+              autocomplete="nickname"
+            /><button id="enter" type="submit">Create a room ↗</button>
+          </div>
+        </form>
+        <div class="entry-notes">
+          <span>02–08 racers</span><span>~1 minute</span><span>No account needed</span>
+        </div>
+        <div class="entry-road" aria-hidden="true">
+          <span>START</span>
+          <div class="road-line"></div>
+          <span>FINISH ▦</span>
+        </div>
+      </section>
+      <section id="game" hidden>
+        <div class="room-header">
+          <div>
+            <p class="eyebrow">Your daily starting grid</p>
+            <h1 id="room-title">The team is lining up.</h1>
+          </div>
+          <div class="connection">
+            <span id="connection-dot"></span><span id="connection-label">Connecting</span>
+          </div>
+        </div>
+        <div class="room-tools">
+          <div class="invite">
+            <label for="invite">Invite your team</label><input id="invite" readonly /><button
+              id="copy"
+              type="button"
+            >
+              Copy link
+            </button>
+          </div>
+          <div class="room-actions">
+            <button id="ready" type="button">I'm ready</button
+            ><button id="start" type="button" hidden>Start race ↗</button
+            ><button id="reset" type="button" hidden>Race again ↗</button
+            ><button id="leave" type="button" class="subtle" hidden>Leave</button>
+          </div>
+        </div>
+        <div class="race-layout">
+          <section class="track-panel" aria-label="Live race positions">
+            <div class="panel-heading">
+              <h2>The track</h2>
+              <span id="race-position">Waiting for racers</span>
+            </div>
+            <div class="track-labels"><span>START</span><span>300 M · FINISH ▦</span></div>
+            <div id="lanes"></div>
+            <p class="track-note">Cars move with correctly typed characters.</p>
+          </section>
+          <section class="typing-panel" aria-label="Typing challenge">
+            <div class="panel-heading">
+              <h2 id="challenge-heading">Get ready to race</h2>
+              <span id="countdown" aria-live="polite">LOBBY</span>
+            </div>
+            <p id="race-help">Everyone marks ready. The host starts the shared countdown.</p>
+            <div id="passage" class="passage">
+              The race text will appear when the countdown begins.
+            </div>
+            <label for="typing">Type the text above</label>
+            <textarea
+              id="typing"
+              disabled
+              rows="4"
+              spellcheck="false"
+              autocomplete="off"
+              autocapitalize="off"
+              aria-describedby="typing-feedback"
+              placeholder="Your engine starts with the countdown…"
+            ></textarea>
+            <div class="typing-stats">
+              <span id="typing-feedback" aria-live="polite">Waiting at the starting line</span
+              ><span id="typed-count">0 characters</span>
+            </div>
+            <div id="result" class="result" hidden role="status">
+              <span class="eyebrow">Checkered flag</span>
+              <h2 id="winner"></h2>
+              <p id="winner-detail"></p>
+            </div>
+          </section>
+        </div>
+        <details class="diagnostics">
+          <summary>Connection check</summary>
+          <div>
+            <span id="latency">Round trip: measuring…</span
+            ><span id="state-age">Last update: —</span><span id="start-time">Shared start: —</span
+            ><span id="state-version">State version: —</span>
+          </div>
+          <p>
+            For validation, compare the shared start and winner on each screen. Remote cars reflect
+            confirmed updates; your car responds locally while typing.
+          </p>
+        </details>
+      </section>
+      <p id="error" class="error" role="alert" hidden></p>
+      <footer>
+        <span>A quick race for the whole team.</span
+        ><a href="https://github.com/garellano/type-racer" target="_blank" rel="noopener noreferrer"
+          >View project ↗</a
+        >
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
