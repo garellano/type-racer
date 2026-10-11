@@ -1,4 +1,5 @@
 import { rankPlayers, TRACK_METERS, type Snapshot } from "../shared/protocol";
+import { carAppearance } from "./garage";
 import {
   approachDistance,
   cameraPosition,
@@ -9,23 +10,11 @@ import {
   VIEW_SPAN_METERS,
 } from "./race-math";
 
-const COLORS = [
-  "#ffc94a",
-  "#5ad9c2",
-  "#ff9378",
-  "#86b9ff",
-  "#cca0f2",
-  "#b7df69",
-  "#f5a9d1",
-  "#b1dee4",
-  "#dbe4e5",
-];
 const ROAD_INSET = 34;
-
-const CAR_SPRITE = `${import.meta.env.BASE_URL}assets/arcade-coupe.png`;
 
 type RacerVisual = {
   marker: HTMLElement;
+  sprite: HTMLImageElement;
   label: HTMLElement;
   edge: HTMLElement;
   dot: HTMLElement;
@@ -226,7 +215,8 @@ export class RaceScene {
       if (!racer) {
         const marker = document.createElement("div");
         marker.className = "racer-marker";
-        marker.innerHTML = `<span class="speed-streak"></span><div class="race-car"><img class="car-sprite" src="${CAR_SPRITE}" alt="" width="1774" height="887" draggable="false"/><span class="wheel wheel-rear"></span><span class="wheel wheel-front"></span><span class="rear-light"></span><span class="headlight-beam"></span></div><span class="car-tag"></span>`;
+        marker.innerHTML = `<span class="speed-streak"></span><div class="race-car"><img class="car-sprite" alt="" width="1774" height="887" draggable="false" decoding="async"/><span class="wheel wheel-rear"></span><span class="wheel wheel-front"></span><span class="rear-light"></span><span class="headlight-beam"></span></div><span class="car-tag"></span>`;
+        const sprite = find<HTMLImageElement>(marker, ".car-sprite");
         const label = find(marker, ".car-tag");
         const edge = document.createElement("div");
         edge.className = "edge-racer";
@@ -240,6 +230,7 @@ export class RaceScene {
         this.standings.append(standing);
         racer = {
           marker,
+          sprite,
           label,
           edge,
           dot,
@@ -254,13 +245,20 @@ export class RaceScene {
         racer.current = target;
       racer.target = target;
       racer.connected = player.connected;
+      const { model, paint } = carAppearance(index, state.raceId ?? state.roomId);
+      if (racer.marker.dataset.model !== model.id) {
+        racer.marker.dataset.model = model.id;
+        racer.marker.title = model.name;
+        racer.sprite.src = `${import.meta.env.BASE_URL}assets/${model.asset}`;
+        racer.marker.style.setProperty("--rear-wheel-x", `${model.rearWheel[0]}%`);
+        racer.marker.style.setProperty("--rear-wheel-y", `${model.rearWheel[1]}%`);
+        racer.marker.style.setProperty("--front-wheel-x", `${model.frontWheel[0]}%`);
+        racer.marker.style.setProperty("--front-wheel-y", `${model.frontWheel[1]}%`);
+      }
       for (const item of [racer.marker, racer.edge, racer.dot, racer.standing]) {
-        item.style.setProperty("--car-color", COLORS[index % COLORS.length] ?? "#ffc94a");
-        item.style.setProperty(
-          "--paint-hue",
-          `${[0, 115, 325, 175, 220, 50, 275, 145][index % COLORS.length] ?? 0}deg`,
-        );
-        item.style.setProperty("--paint-saturation", index % COLORS.length === 8 ? "0" : "1");
+        item.style.setProperty("--car-color", paint.color);
+        item.style.setProperty("--paint-hue", `${paint.hue}deg`);
+        item.style.setProperty("--paint-saturation", String(paint.saturation));
         item.dataset.own = String(own);
         item.dataset.connected = String(player.connected);
         item.dataset.winner = String(player.id === state.winnerId);

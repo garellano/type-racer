@@ -34,6 +34,7 @@ Type Racer is a short multiplayer typing race for 2–9 standup participants. Pr
 - Avoid layout reads in animation loops. Stop frame requests when positions settle, pause in hidden documents, and release observers and listeners on exit.
 - Honor reduced-motion preferences and provide an explicit toggle. Freeze disconnected racers; decorative effects must not suggest continued progress.
 - Use original artwork, preserve image alpha, document generated asset provenance, and insert all player-provided text with textContent.
+- Keep at least five distinct car models in the garage. Use different models before repeating in the field and distinct colors for all nine seats. Derive appearances from shared identity so all screens and reconnections show the same cars.
 
 ## Security and cost
 

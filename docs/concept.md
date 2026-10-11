@@ -25,7 +25,7 @@ The host can reset after a result. Disconnected guests are removed at reset. Hos
 
 ## Race presentation
 
-Detailed sports coupes face right in stable lanes, with an elevated side perspective, material highlights, animated rim details, headlights, brake lights, and distinct colors. The camera follows the local racer's front bumper and shows exactly 50 meters behind and ahead. It includes pre-grid and post-finish space at track boundaries. A minimap shows the entire field and the clipped camera window, with edge indicators for opponents outside the main view. Rankings use confirmed server positions. See [art provenance](art.md).
+Six distinct car models face right in stable lanes, with an elevated side perspective, material highlights, animated rim details, headlights, brake lights, and distinct colors. The camera follows the local racer's front bumper and shows exactly 50 meters behind and ahead. It includes pre-grid and post-finish space at track boundaries. A minimap shows the entire field and the clipped camera window, with edge indicators for opponents outside the main view. Rankings use confirmed server positions. The field uses each model before repeating, with nine distinct seat colors and matching appearances on every screen. A two-player race shows two different models; races with five or more show at least five. See [art provenance](art.md).
 
 Starting lights reflect the estimated server clock. Movement adds a small chassis and tire effect, mistakes illuminate brake lights, confirmed overtakes show a short notice, and the final shared result shows a flag and brief confetti. Effects express progress without random advantages. Reduced motion uses immediate positions and removes decorations.
 

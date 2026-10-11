@@ -231,12 +231,12 @@
   background: repeating-conic-gradient(#e8e9e7bb 0deg 7deg, transparent 7deg 72deg);
 }
 .wheel-rear {
-  left: 18.3%;
-  top: 66%;
+  left: var(--rear-wheel-x, 18.3%);
+  top: var(--rear-wheel-y, 66%);
 }
 .wheel-front {
-  left: 73%;
-  top: 73%;
+  left: var(--front-wheel-x, 73%);
+  top: var(--front-wheel-y, 73%);
 }
 .racer-marker[data-moving="true"] .wheel {
   opacity: 0.45;
