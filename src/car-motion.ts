@@ -25,7 +25,7 @@ export function advanceCarMotion(
   if (elapsedMs <= 0) return previous;
   const speed = (travel * 1000) / elapsedMs;
   const angle = (previous.angle + (travel / 3.2) * 360) % 360;
-  const drive = blend(previous.drive, Math.min(1, Math.abs(speed) / 12), elapsedMs, 85);
+  const drive = blend(previous.drive, Math.min(1, Math.abs(speed) / 8), elapsedMs, 85);
   const pitch = blend(
     previous.pitch,
     Math.max(-1.2, Math.min(1.2, (previous.speed - speed) * 0.055)),
@@ -54,7 +54,7 @@ export function advanceCarMotion(
     speed: filteredSpeed,
     drive,
     pitch,
-    lift: Math.sin((angle * Math.PI) / 90) * drive * 1.1,
+    lift: Math.sin((angle * Math.PI) / 90) * drive * 1.8,
     brake,
   };
 }

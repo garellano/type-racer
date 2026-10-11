@@ -223,7 +223,7 @@
   transform: translate(-50%, -50%) scaleX(var(--wheel-aspect));
   border-radius: 50%;
   overflow: hidden;
-  opacity: var(--drive, 0);
+  opacity: clamp(0, calc(var(--drive, 0) * 1.8), 1);
   background: radial-gradient(circle, #141b21 0 56%, #c1c8cc 59% 66%, #303a40 71%);
   box-shadow: inset 0 0 1px #f8fcff;
 }

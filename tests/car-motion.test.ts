@@ -30,7 +30,7 @@ describe("car decorations follow actual travel", () => {
     for (const travel of [-300, -1, 0, 1, 300]) {
       const motion = advanceCarMotion(accelerating, travel, 16);
       expect(Math.abs(motion.pitch)).toBeLessThanOrEqual(1.2);
-      expect(Math.abs(motion.lift)).toBeLessThanOrEqual(1.1);
+      expect(Math.abs(motion.lift)).toBeLessThanOrEqual(1.8);
       expect(motion.drive).toBeGreaterThanOrEqual(0);
       expect(motion.drive).toBeLessThanOrEqual(1);
     }
