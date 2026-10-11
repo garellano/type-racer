@@ -37,6 +37,7 @@ Type Racer is a short multiplayer typing race for 2–9 standup participants. Pr
 - Keep at least five distinct car models in the garage. Use different models before repeating in the field and distinct colors for all nine seats. Derive appearances from shared identity so all screens and reconnections show the same cars.
 - Preserve both Race cars and Jump with sacks. Maintain at least eight distinct fictional sack characters, six jump poses, and one ordinary hop per two correct characters. Allow an odd final character to reach the finish; catch up delayed network bursts without replaying an unbounded queue. Finish, disconnect, hidden-page, and reduced-motion states must stop hops.
 - Use only the explicitly requested team-name presets. Do not infer gender, skin tone, nationality, or ethnicity for unfamiliar names. Every participant may choose any character; persist the choice on the server.
+- Show sack character choices as spacious, complete illustrations without fictional names. Give each choice an accessible visual description. Keep lobby controls aligned and their positions stable when readiness changes.
 
 ## Security and cost
 

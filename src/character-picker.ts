@@ -8,15 +8,13 @@ export class CharacterPicker {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "character-option";
-      button.setAttribute("aria-label", `${avatar.name}: ${avatar.detail}`);
+      button.setAttribute("aria-label", `Choose character: ${avatar.detail}`);
       button.setAttribute("aria-pressed", "false");
       const portrait = document.createElement("span");
       portrait.className = "character-portrait";
       portrait.setAttribute("aria-hidden", "true");
       portrait.style.backgroundImage = `url("${import.meta.env.BASE_URL}assets/sacks/${avatar.id}.webp")`;
-      const label = document.createElement("span");
-      label.textContent = avatar.name;
-      button.append(portrait, label);
+      button.append(portrait);
       button.addEventListener("click", () => choose(avatar.id));
       this.buttons.set(avatar.id, button);
       root.append(button);

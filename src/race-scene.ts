@@ -342,7 +342,7 @@ export class RaceScene {
       const avatar = character(player.characterId ?? chooseCharacter(player.name));
       if (state.mode === "sacks" && racer.marker.dataset.character !== avatar.id) {
         racer.marker.dataset.character = avatar.id;
-        racer.marker.title = avatar.name;
+        racer.marker.title = player.name;
         racer.sackSprite.style.backgroundImage = `url("${import.meta.env.BASE_URL}assets/sacks/${avatar.id}.webp")`;
       }
       for (const item of [racer.marker, racer.edge, racer.dot, racer.standing]) {

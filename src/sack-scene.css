@@ -50,7 +50,7 @@
   height: 84px;
 }
 .mode-car-art {
-  background: url("/assets/arcade-coupe.webp") center / 120px auto no-repeat;
+  background: url("/assets/arcade-coupe.webp") center / contain no-repeat;
 }
 .mode-sack-art {
   background: url("/assets/sacks/juno.webp") 0 0 / 300% 200% no-repeat;
@@ -70,13 +70,14 @@
 }
 .character-picker {
   display: grid;
-  grid-template-columns: repeat(9, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 12px;
 }
 .character-option {
   display: grid;
   justify-items: center;
-  padding: 6px 3px 10px;
+  min-width: 0;
+  padding: 12px 8px;
   border: 1px solid #d8dfce;
   background: #fffef6;
   color: #32523b;
@@ -93,8 +94,8 @@
 }
 .character-portrait {
   display: block;
-  width: 76px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 112px;
   aspect-ratio: 1;
   background-size: 300% 200%;
   background-position: 0 0;
@@ -246,10 +247,7 @@
     min-height: 90px;
   }
   .character-picker {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-  .character-portrait {
-    width: 65px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .race-viewport[data-mode="sacks"] .car-tag {
     font-size: 8px;

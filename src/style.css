@@ -138,7 +138,7 @@ h2 {
 }
 .entry form {
   margin-top: 34px;
-  max-width: 570px;
+  max-width: 850px;
 }
 label {
   display: block;
@@ -149,6 +149,7 @@ label {
 .entry-controls {
   display: flex;
   gap: 10px;
+  max-width: 570px;
 }
 .entry-controls input {
   flex: 1;
@@ -211,16 +212,25 @@ label {
   background: #c05c47;
 }
 .room-tools {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(260px, 1.4fr) repeat(2, minmax(180px, 1fr)) auto;
+  align-items: start;
   gap: 16px;
   margin-bottom: 28px;
 }
+.room-tools label {
+  margin: 0;
+  line-height: 18px;
+}
+.room-tools :is(input, select, button) {
+  min-width: 0;
+  height: 48px;
+}
 .invite {
   display: grid;
-  grid-template-columns: minmax(180px, 290px) auto;
-  gap: 0 7px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: 18px 48px;
+  gap: 8px;
 }
 .invite label {
   grid-column: 1 / -1;
@@ -238,17 +248,28 @@ label {
   font-size: 12px;
 }
 .room-actions {
-  align-self: end;
   display: flex;
   gap: 8px;
+  padding-top: 26px;
+}
+.room-actions button {
+  white-space: nowrap;
+}
+#ready {
+  width: 124px;
+}
+#start,
+#reset {
+  width: 140px;
 }
 .language-choice {
   display: grid;
-  gap: 6px;
-  flex: 0 1 260px;
+  grid-template-rows: 18px 48px auto;
+  gap: 8px;
 }
 .language-choice span {
   font-size: 11px;
+  line-height: 16px;
   color: var(--muted);
 }
 .race-layout {
@@ -392,6 +413,28 @@ footer {
   padding-top: 18px;
   font-size: 10px;
   color: var(--muted);
+}
+@media (max-width: 1100px) {
+  .room-tools {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .invite,
+  .room-actions {
+    grid-column: 1 / -1;
+  }
+  .room-actions {
+    justify-content: flex-end;
+    padding-top: 0;
+  }
+}
+@media (max-width: 620px) {
+  .room-tools {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .room-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
 }
 @media (max-width: 900px) {
   .app {

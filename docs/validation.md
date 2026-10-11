@@ -33,8 +33,14 @@ Camera bounds, radar clipping, frame-rate-independent damping, distance-based wh
 
 ## Sack race validation
 
-Choose **Jump with sacks** at entry, then test a round with nine racers. Confirm the nine team-requested presets, including Juno for Kate and Ember for Devan. Choose another character and check that the same avatar appears on a second screen and after refresh. Only your own readiness clears. Changing the host's race mode clears all readiness. Mode and characters lock at countdown.
+Choose **Jump with sacks** at entry, then test a round with nine racers. Confirm the nine team-requested presets, including the violet-shirt woman for Kate and coral-shirt woman for Devan. Choose another character and check that the same avatar appears on a second screen and after refresh. Only your own readiness clears. Changing the host's race mode clears all readiness. Mode and characters lock at countdown.
 
 Type one correct character: the character stays grounded. Type the second: crouch, takeoff, apex, descent, landing, then ready. Continue slowly and quickly; the shadow shrinks in flight and the landing puff is brief. Make a typo and delete text: no unearned hop continues. Reduced motion uses immediate positions and a static pose. Reconnect, hide the page, and finish: hops stop and no stale queue replays. An odd final character reaches the same single server-confirmed finish.
 
 With five or more racers on a wide desktop, the typing challenge moves beside the course so all lanes and the keyboard remain available. Smaller fields use the stacked layout. The personal camera and radar use the same 50-meter bounds as cars. Check English, Spanish, and Java sack passages, final rankings, and the shared welcoming standup invitation.
+
+## Lobby layout validation
+
+At desktop, tablet, and phone widths, check that the race-mode car preview includes the complete car and all nine character choices show complete figures with space around them. Character choices have no fictional name captions; their accessible names describe the illustration. Use keyboard focus to select a character and verify its selected outline remains visible.
+
+In the lobby, invitation, mode, and language controls share label spacing and control heights. On a wide desktop, the action buttons align with the inputs rather than the language helper. At narrower widths they occupy a dedicated row. Compare positions before and after marking ready: the shorter **Ready ✓** label must not move any control or button. Check both host and guest controls and the **Race again** state.
