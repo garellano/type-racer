@@ -109,12 +109,22 @@ async function room(
 }
 
 async function countdown(probes: Probe[]): Promise<Snapshot[]> {
-  for (const probe of probes) probe.send({ type: "ready", ready: true });
   const host = probes[0];
   if (!host) throw new Error("Missing host.");
-  await host.snapshot((state) => state.players.every((player) => player.ready && player.connected));
+  const before = await host.snapshot(() => true);
+  for (const probe of probes) probe.send({ type: "ready", ready: true });
+  const ready = await host.snapshot(
+    (state) =>
+      state.version > before.version &&
+      state.phase === "lobby" &&
+      state.players.every((player) => player.ready && player.connected),
+  );
   host.send({ type: "start" });
-  return Promise.all(probes.map((probe) => probe.snapshot((state) => state.phase === "countdown")));
+  return Promise.all(
+    probes.map((probe) =>
+      probe.snapshot((state) => state.version > ready.version && state.phase === "countdown"),
+    ),
+  );
 }
 
 const editableStateSchema = z
@@ -192,6 +202,10 @@ describe("authoritative multiplayer races", () => {
     );
     expect(new Set(results.map((state) => state.winnerId)).size).toBe(1);
     expect(results[0]?.winnerId).not.toBeNull();
+    expect(new Set(results.map((state) => state.standupStarterId)).size).toBe(1);
+    expect(results[0]?.standupStarterId).not.toBeNull();
+    expect(results[0]?.standupStarterId).not.toBe(results[0]?.winnerId);
+    expect(results.every((state) => state.standupTieCount === 7)).toBe(true);
     expect(results.every((state) => state.outcome === "completed")).toBe(true);
     expect(
       results[0]?.players.filter((player) => player.progress === start.passage.length),
@@ -200,6 +214,8 @@ describe("authoritative multiplayer races", () => {
     const restored = await connect(admissions[0]!);
     const persisted = await restored.snapshot((state) => state.phase === "finished");
     expect(persisted.winnerId).toBe(results[0]?.winnerId);
+    expect(persisted.standupStarterId).toBe(results[0]?.standupStarterId);
+    expect(persisted.standupTieCount).toBe(7);
     expect(persisted.language).toBe("java");
     expect(persisted.passage).toBe(start.passage);
     for (const probe of probes) {
@@ -258,10 +274,14 @@ describe("authoritative multiplayer races", () => {
       expect(recovered.language).toBe(language);
       expect(recovered.passage).toBe("");
       expect(recovered.players.every((player) => !player.ready)).toBe(true);
+      expect(recovered.standupStarterId).toBeNull();
+      // The next round and new connection retain the day's no-repeat deck.
+      const next = await countdown([restored, probes[1]!]);
+      expect(next[0]?.passage).not.toBe(start.passage);
     },
   );
 
-  it("restores older rooms without a language field as English", async () => {
+  it("restores older rooms with safe defaults for language, deck, and opener", async () => {
     const { admissions, roomId } = await room(2);
     const stub = env.ROOMS.getByName(roomId);
     await runInDurableObject(stub, (_instance, context) => {
@@ -270,12 +290,18 @@ describe("authoritative multiplayer races", () => {
         .one();
       const stored = z.record(z.string(), z.unknown()).parse(JSON.parse(row.value));
       delete stored.language;
+      delete stored.passageDay;
+      delete stored.passageHistory;
+      delete stored.standupStarterId;
+      delete stored.standupTieCount;
       context.storage.sql.exec("UPDATE room SET value = ? WHERE id = 1", JSON.stringify(stored));
     });
     await evictDurableObject(stub);
     const restored = await connect(admissions[0]!);
     const recovered = await restored.snapshot((state) => state.phase === "lobby");
     expect(recovered.language).toBe("english");
+    expect(recovered.standupStarterId).toBeNull();
+    expect(recovered.standupTieCount).toBe(0);
     restored.send({ type: "ready", ready: true });
     await restored.snapshot((state) => state.players[0]?.ready === true);
     const saved = await runInDurableObject(
@@ -374,6 +400,8 @@ describe("authoritative multiplayer races", () => {
     await changeTime(roomId, "deadline");
     const ended = await probes[0]?.snapshot((state) => state.phase === "finished");
     expect(ended).toMatchObject({ outcome: "timeout", winnerId: null });
+    expect(ended?.standupStarterId).not.toBeNull();
+    expect(ended?.standupTieCount).toBe(2);
     const isolated = await other.probes[0]?.snapshot((state) => state.phase === "lobby");
     expect(isolated?.raceId).toBeNull();
     probes[0]?.send({ type: "reset" });
@@ -384,6 +412,7 @@ describe("authoritative multiplayer races", () => {
       true,
     );
     expect(resetState?.raceId).toBeNull();
+    expect(resetState?.standupStarterId).toBeNull();
     await changeTime(roomId, "expiry");
     const rows = await runInDurableObject(env.ROOMS.getByName(roomId), (_instance, context) =>
       context.storage.sql

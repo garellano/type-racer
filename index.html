@@ -14,14 +14,14 @@
     <main class="app">
       <header class="masthead">
         <a class="brand" href="#">TYPE<span>RACER</span><span class="brand-mark">↗</span></a
-        ><span class="prototype">The standup circuit · v0.2</span>
+        ><span class="prototype">The standup circuit · v0.3</span>
       </header>
       <section id="entry" class="entry">
         <p class="eyebrow">A little competition. A better morning.</p>
-        <h1>First to the flag.<br /><span>First to standup.</span></h1>
+        <h1>A quick lap.<br /><span>A shared start.</span></h1>
         <p class="intro">
-          Grab a lane, invite your team, and type your way to the finish line. One shared start. One
-          winner.
+          Grab a lane, invite your team, and type your way to the finish line. Celebrate the flag,
+          then let the final race position open our standup. One shared start. Every voice matters.
         </p>
         <form id="entry-form">
           <label for="name">Your racer name</label>
@@ -171,10 +171,37 @@
               <span id="typing-feedback" aria-live="polite">Waiting at the starting line</span
               ><span id="typed-count">0 characters</span>
             </div>
-            <div id="result" class="result" hidden role="status">
+          </section>
+          <section id="result" class="result results-panel" hidden aria-label="Race results">
+            <div class="result-celebration" role="status">
               <span class="eyebrow">Checkered flag</span>
               <h2 id="winner"></h2>
               <p id="winner-detail"></p>
+            </div>
+            <div class="results-reveal">
+              <div class="results-heading">
+                <h3>One lap, the whole team</h3>
+                <span>Final standings</span>
+              </div>
+              <table class="results-table">
+                <caption>
+                  Distance when the round ended. Equal distances share a place.
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Place</th>
+                    <th scope="col">Racer</th>
+                    <th scope="col">Distance</th>
+                    <th scope="col">Today's moment</th>
+                  </tr>
+                </thead>
+                <tbody id="result-rows"></tbody>
+              </table>
+              <div class="standup-callout" role="status">
+                <span class="eyebrow">The first update</span>
+                <h3 id="standup-opener"></h3>
+                <p id="standup-detail"></p>
+              </div>
             </div>
           </section>
         </div>

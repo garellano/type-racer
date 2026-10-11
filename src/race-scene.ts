@@ -21,20 +21,7 @@ const COLORS = [
 ];
 const ROAD_INSET = 34;
 
-// Original top-down car artwork. Player names are always inserted separately as text.
-const CAR_ART = `<svg viewBox="0 0 120 60" aria-hidden="true">
-  <g fill="#111c24"><rect x="20" y="1" width="22" height="10" rx="3"/><rect x="80" y="1" width="22" height="10" rx="3"/><rect x="20" y="49" width="22" height="10" rx="3"/><rect x="80" y="49" width="22" height="10" rx="3"/></g>
-  <g stroke="#697780" stroke-width="2" class="tire-tread"><path d="M24 3v6m5-6v6m5-6v6m51-6v6m5-6v6m5-6v6M24 51v6m5-6v6m5-6v6m51-6v6m5-6v6m5-6v6"/></g>
-  <path d="M13 8h80q22 0 23 22-1 22-23 22H13Q5 52 5 30T13 8" fill="var(--car-color)" stroke="#14252c" stroke-width="2"/>
-  <path d="M16 11h76q15 0 19 12H14Z" fill="#fff" opacity=".19"/><path d="M14 45h91q-4 5-13 5H15Z" fill="#12232b" opacity=".22"/>
-  <path d="M42 13h33l9 9v16l-9 9H42l-7-9V22Z" fill="#1a343e" stroke="#10282e" stroke-width="2"/>
-  <path d="M72 16l9 8v12l-9 8-3-14Z" fill="#a6dde2"/><path d="M39 22l5-7 4 15-4 15-5-7Z" fill="#72acb8"/>
-  <rect x="49" y="16" width="19" height="28" rx="4" fill="var(--car-color)"/><path d="M52 17v26" stroke="#fff" opacity=".3" stroke-width="2"/>
-  <path d="M87 16h13m-13 28h13" stroke="#19333b" opacity=".3" stroke-width="2"/><path d="M103 20v20" stroke="#fff" opacity=".28" stroke-width="3"/>
-  <path d="M10 19v7m0 8v7" class="brake-lights" stroke="#bd4f37" stroke-width="4"/>
-  <path d="M110 18v7m0 10v7" stroke="#fff6c9" stroke-width="4"/>
-  <path d="M16 20v20" stroke="#263b43" stroke-width="4"/>
-</svg>`;
+const CAR_SPRITE = `${import.meta.env.BASE_URL}assets/arcade-coupe.png`;
 
 type RacerVisual = {
   marker: HTMLElement;
@@ -220,6 +207,7 @@ export class RaceScene {
     this.viewport.style.setProperty("--lane-count", String(Math.max(2, state.players.length)));
     const laneHeight = state.players.length > 4 ? 50 : 64;
     this.viewport.style.setProperty("--lane-height", `${laneHeight}px`);
+    this.viewport.dataset.field = state.players.length > 4 ? "full" : "small";
     const ranks = rankPlayers(state.players);
     const rank = ranks.findIndex((player) => player.id === ownId) + 1;
     if (this.rank && rank < this.rank && state.phase === "racing" && this.ownCharacters > 0) {
@@ -237,7 +225,7 @@ export class RaceScene {
       if (!racer) {
         const marker = document.createElement("div");
         marker.className = "racer-marker";
-        marker.innerHTML = `<span class="speed-streak"></span><div class="race-car">${CAR_ART}</div><span class="car-tag"></span>`;
+        marker.innerHTML = `<span class="speed-streak"></span><div class="race-car"><img class="car-sprite" src="${CAR_SPRITE}" alt="" width="1774" height="887" draggable="false"/><span class="wheel wheel-rear"></span><span class="wheel wheel-front"></span><span class="rear-light"></span><span class="headlight-beam"></span></div><span class="car-tag"></span>`;
         const label = find(marker, ".car-tag");
         const edge = document.createElement("div");
         edge.className = "edge-racer";
@@ -267,6 +255,10 @@ export class RaceScene {
       racer.connected = player.connected;
       for (const item of [racer.marker, racer.edge, racer.dot, racer.standing]) {
         item.style.setProperty("--car-color", COLORS[index % COLORS.length] ?? "#ffc94a");
+        item.style.setProperty(
+          "--paint-hue",
+          `${[0, 115, 325, 175, 220, 50, 275, 145][index % COLORS.length] ?? 0}deg`,
+        );
         item.dataset.own = String(own);
         item.dataset.connected = String(player.connected);
         item.dataset.winner = String(player.id === state.winnerId);

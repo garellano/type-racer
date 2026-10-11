@@ -200,20 +200,83 @@
 .race-car {
   position: absolute;
   right: 0;
-  top: -22px;
-  width: 88px;
-  height: 44px;
+  top: -40px;
+  width: var(--car-size, 144px);
+  height: calc(var(--car-size, 144px) / 2);
   filter: drop-shadow(-3px 5px 2px #15262a90);
   z-index: 2;
 }
-.race-car svg {
+.car-sprite {
   display: block;
   width: 100%;
   height: 100%;
+  filter: hue-rotate(var(--paint-hue, 0deg));
+  object-fit: contain;
+  user-select: none;
+}
+.wheel {
+  position: absolute;
+  width: 10.5%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) scaleX(0.85);
+  border-radius: 50%;
+  overflow: hidden;
+  opacity: 0;
+}
+.wheel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: repeating-conic-gradient(#e8e9e7bb 0deg 7deg, transparent 7deg 72deg);
+}
+.wheel-rear {
+  left: 18.3%;
+  top: 66%;
+}
+.wheel-front {
+  left: 73%;
+  top: 73%;
+}
+.racer-marker[data-moving="true"] .wheel {
+  opacity: 0.45;
+}
+.racer-marker[data-moving="true"] .wheel::after {
+  animation: wheel-turn 400ms linear infinite;
+}
+.rear-light {
+  position: absolute;
+  width: 7%;
+  height: 7%;
+  left: 3.5%;
+  top: 34%;
+  border-radius: 50%;
+  opacity: 0;
+  background: #ff6851;
+  box-shadow: 0 0 6px 2px #ff684aa6;
+}
+.headlight-beam {
+  position: absolute;
+  left: 92%;
+  top: 53%;
+  width: 32%;
+  height: 20%;
+  background: linear-gradient(90deg, #ffefb21f, transparent);
+  clip-path: polygon(0 35%, 100% 0, 100% 100%, 0 65%);
+  opacity: 0;
+}
+.racer-marker[data-moving="true"] .headlight-beam {
+  opacity: 1;
+}
+.racer-marker[data-error="true"] .rear-light {
+  opacity: 1;
+}
+.racer-marker[data-own="true"] .race-car {
+  filter: drop-shadow(0 5px 2px #12242d) drop-shadow(0 0 2px #ffdc7780);
 }
 .car-tag {
   position: absolute;
-  right: 102px;
+  right: calc(var(--car-size, 144px) + 8px);
   top: -12px;
   max-width: 150px;
   overflow: hidden;
@@ -239,7 +302,7 @@
 }
 .speed-streak {
   position: absolute;
-  right: 78px;
+  right: calc(var(--car-size, 144px) - 8px);
   top: -12px;
   height: 24px;
   width: 40px;
@@ -252,13 +315,6 @@
 }
 .racer-marker[data-moving="true"] .race-car {
   animation: chassis 180ms ease-in-out infinite alternate;
-}
-.racer-marker[data-moving="true"] .tire-tread {
-  animation: tire-roll 100ms linear infinite alternate;
-}
-.racer-marker[data-error="true"] .brake-lights {
-  stroke: #ff5f49;
-  filter: drop-shadow(0 0 3px #ff6343);
 }
 .edge-racer {
   position: absolute;
@@ -611,18 +667,23 @@
   gap: 12px;
 }
 #game:is([data-phase="racing"], [data-phase="countdown"]) .race-viewport {
-  --lane-height: clamp(28px, calc((100svh - 470px) / var(--lane-count)), 64px) !important;
+  --lane-height: clamp(36px, calc((100svh - 470px) / var(--lane-count)), 64px) !important;
+  --car-size: 144px;
+}
+.race-viewport[data-field="full"] {
+  --car-size: 100px;
+}
+#game:is([data-phase="racing"], [data-phase="countdown"]) .race-viewport[data-field="full"] {
+  --car-size: 100px;
 }
 #game:is([data-phase="racing"], [data-phase="countdown"]) .track-heading {
   padding: 10px 16px;
 }
 #game:is([data-phase="racing"], [data-phase="countdown"]) .race-car {
-  width: 64px;
-  height: 32px;
-  top: -16px;
+  top: calc(var(--car-size, 144px) * -0.29);
 }
 #game:is([data-phase="racing"], [data-phase="countdown"]) .car-tag {
-  right: 73px;
+  right: calc(var(--car-size, 144px) + 8px);
   top: -10px;
   padding: 4px 7px;
   font-size: 9px;
@@ -670,9 +731,9 @@
     transform: translateY(-0.6px);
   }
 }
-@keyframes tire-roll {
+@keyframes wheel-turn {
   to {
-    opacity: 0.25;
+    transform: rotate(360deg);
   }
 }
 @keyframes finish-entrance {
@@ -699,6 +760,129 @@
 .track-panel[data-reduced-motion="true"] .confetti,
 .track-panel[data-reduced-motion="true"] .speed-streak {
   display: none;
+}
+.results-panel {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fffef6;
+  padding: 24px;
+}
+.track-panel[data-phase="finished"] #standings {
+  display: none;
+}
+.result-celebration {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.results-reveal {
+  animation: results-arrive 350ms ease-out 1100ms both;
+}
+.results-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin: 20px 0 12px;
+}
+.results-heading h3 {
+  font:
+    600 18px "Space Grotesk",
+    sans-serif;
+  margin: 0;
+}
+.results-heading > span {
+  font-size: 10px;
+  color: var(--muted);
+}
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.results-table caption {
+  text-align: left;
+  color: var(--muted);
+  font-size: 10px;
+  padding-bottom: 10px;
+}
+.results-table th {
+  text-align: left;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.results-table td {
+  padding: 13px 12px;
+  border-bottom: 1px solid #e6e9dc;
+  font-variant-numeric: tabular-nums;
+}
+.results-table td:first-child {
+  width: 60px;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+}
+.results-table td:last-child {
+  font-size: 10px;
+  color: #47674d;
+}
+.results-table tr[data-starter="true"] {
+  background: #edf3e3;
+}
+.results-table tr[data-own="true"] td:nth-child(2) {
+  font-weight: 700;
+}
+.standup-callout {
+  margin-top: 22px;
+  padding: 20px 22px;
+  border: 1px solid #c8d8b7;
+  border-radius: 8px;
+  background: #e9f0df;
+}
+.standup-callout .eyebrow {
+  font-size: 9px;
+}
+.standup-callout h3 {
+  font:
+    600 clamp(19px, 2.5vw, 26px) "Space Grotesk",
+    sans-serif;
+  letter-spacing: -0.6px;
+  margin: 8px 0;
+}
+.standup-callout p {
+  margin: 0;
+}
+#game[data-phase="finished"] .typing-panel {
+  display: none;
+}
+#game[data-phase="finished"] .track-panel {
+  max-height: 310px;
+}
+#game[data-phase="finished"] .race-viewport {
+  max-height: 130px;
+}
+#game[data-phase="finished"] .race-hud .hud-stat:first-child {
+  display: none;
+}
+@keyframes results-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .results-reveal {
+    animation: none;
+  }
+}
+.app:has(.track-panel[data-reduced-motion="true"]) .results-reveal {
+  animation: none;
 }
 @media (max-width: 900px) {
   .track-heading {
@@ -731,13 +915,14 @@
   .hud-stat strong {
     font-size: 17px;
   }
-  .race-car {
-    width: 72px;
-    height: 36px;
-    top: -18px;
+  .race-viewport {
+    --car-size: 100px;
+  }
+  #game:is([data-phase="racing"], [data-phase="countdown"]) .race-viewport {
+    --car-size: 100px;
   }
   .car-tag {
-    right: 79px;
+    right: calc(var(--car-size, 100px) + 4px);
     max-width: 90px;
     font-size: 8px;
     padding: 4px 5px;
@@ -763,5 +948,19 @@
   }
   .code-passage {
     font-size: 13px;
+  }
+  .results-panel {
+    padding: 18px 12px;
+  }
+  .results-table th,
+  .results-table td {
+    padding: 10px 6px;
+  }
+  .results-table th:last-child,
+  .results-table td:last-child {
+    max-width: 65px;
+  }
+  .standup-callout {
+    padding: 16px;
   }
 }

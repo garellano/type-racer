@@ -2,7 +2,7 @@
 
 ## Product scope
 
-Type Racer is a short multiplayer typing race for 2–8 standup participants. Preserve synchronized starts, shared progress, reconnection, and one authoritative winner while developing the top-down race scene, personal camera, and full-field minimap.
+Type Racer is a short multiplayer typing race for 2–8 standup participants. Preserve synchronized starts, shared progress, reconnection, and one authoritative winner while developing the arcade race scene, personal camera, and full-field minimap. Celebrate the winner, then show final standings and warmly invite the last race position to open standup.
 
 ## Language and design
 
@@ -19,6 +19,8 @@ Type Racer is a short multiplayer typing race for 2–8 standup participants. Pr
 - Only the host chooses a race language in the lobby. Changing it clears readiness; freeze both the language and shared passage for the round.
 - Never trust client coordinates, finish times, player identities, or host claims. Authenticate sessions and validate every message.
 - Make winner selection and persistence synchronous and atomic. Do not await external work between reading race state and committing a winner.
+- Freeze standings when the round ends. Select the opening speaker from the least-progress group on the server, drawing once for an exact tie; persist that choice with the result. Never ridicule a teammate or label them a loser.
+- Rotate original passages through disjoint daily decks in America/Mexico_City. Preserve the room's recent deck history across resets and hibernation; do not promise indefinite uniqueness.
 - Ignore stale or duplicate progress messages. Persist essential state before broadcasting it.
 - Use hibernating WebSockets and bounded messages. Stop timers when no work remains; expire rooms and close their sockets.
 - Preserve durable state and connection attachments across hibernation. Reconnection must recover the same player and result.
@@ -31,7 +33,7 @@ Type Racer is a short multiplayer typing race for 2–8 standup participants. Pr
 - Use time-based requestAnimationFrame motion toward known positions. Never extrapolate remote progress or let animation decide the winner.
 - Avoid layout reads in animation loops. Stop frame requests when positions settle, pause in hidden documents, and release observers and listeners on exit.
 - Honor reduced-motion preferences and provide an explicit toggle. Freeze disconnected racers; decorative effects must not suggest continued progress.
-- Use original vector artwork and insert all player-provided text with textContent.
+- Use original artwork, preserve image alpha, document generated asset provenance, and insert all player-provided text with textContent.
 
 ## Security and cost
 

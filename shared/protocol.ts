@@ -63,6 +63,8 @@ export const snapshotSchema = z.object({
   deadline: z.number().nullable(),
   winnerId: z.uuid().nullable(),
   finishAt: z.number().nullable(),
+  standupStarterId: z.uuid().nullable().default(null),
+  standupTieCount: z.int().min(0).max(MAX_PLAYERS).default(0),
   outcome: z.enum(["completed", "timeout"]).nullable(),
   // Existing stored rooms and older snapshots predate language selection.
   language: languageSchema.default("english"),

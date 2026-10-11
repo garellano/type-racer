@@ -14,6 +14,7 @@ import {
 } from "../shared/protocol";
 import { RaceConnection } from "./connection";
 import { RaceScene } from "./race-scene";
+import { renderResults } from "./results";
 
 function element<E extends HTMLElement>(selector: string): E {
   const result = document.querySelector<E>(selector);
@@ -232,7 +233,7 @@ function renderState(): void {
       : "Type the same text as your teammates. Correct mistakes to keep moving.";
   const prefix = correctPrefix(input.value, state.passage);
   scene.update(state, session.playerId, prefix, input.value.length > prefix);
-  element<HTMLElement>("#result").hidden = state.phase !== "finished";
+  renderResults(state, session.playerId);
   if (state.phase === "finished") {
     const winner = state.players.find((player) => player.id === state?.winnerId);
     element<HTMLElement>("#winner").textContent = winner
@@ -240,7 +241,7 @@ function renderState(): void {
       : "Time's up. Give it another go.";
     element<HTMLElement>("#winner-detail").textContent =
       winner && state.finishAt !== null && state.startAt !== null
-        ? `First to standup · ${((state.finishAt - state.startAt) / 1000).toFixed(2)} seconds · confirmed for everyone`
+        ? `${((state.finishAt - state.startAt) / 1000).toFixed(2)} seconds · confirmed for everyone · thanks for the lap, team`
         : "No racer finished within 90 seconds. The host can start a new round.";
   }
   element<HTMLElement>("#start-time").textContent =

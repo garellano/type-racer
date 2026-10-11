@@ -8,7 +8,9 @@ The Worker validates origins, paths, names, and bounded JSON. Random room IDs ro
 
 One SQLite row stores the bounded room state: players, credential hashes, race language, epoch, passage, start, deadline, sequences, progress, and result. Every accepted update persists before sending state. Storage output gates hold network output until writes complete. No index adds a second per-progress write. Stored rooms without a language field default to English; new writes preserve the selected language.
 
-Winner selection reads and updates synchronously with no intervening await. A complete correct prefix changes the phase to finished and records one winner. Later updates cannot change the result. The animation never decides the outcome.
+Winner selection reads and updates synchronously with no intervening await. A complete correct prefix changes the phase to finished and records one winner. The same transaction chooses the standup opener from the least-progress group, using one cryptographic random draw if needed. Timeout uses the same result path without a winner. Later updates cannot change the result or redraw the opener. The animation never decides the outcome.
+
+The bounded state also saves the daily passage key and up to three recent choices. These private deck fields stay out of snapshots. Missing deck and opening-speaker fields have safe defaults for rooms created by earlier versions. Disjoint daily groups are derived using America/Mexico_City, so new rooms cannot repeat the previous day's passages with an unchanged catalog.
 
 [Hibernating WebSockets](https://developers.cloudflare.com/durable-objects/best-practices/websockets/) retain authenticated player identity in connection attachments. Presence comes from live sockets. The constructor rebuilds the schema, and essential data is read from storage rather than depending on memory.
 

@@ -6,9 +6,9 @@ Open the [game](https://garellano.github.io/type-racer/) on desktop browsers wit
    Choose English, Spanish, and Java in separate rounds. Only the host can change the lobby choice; changing it clears ready marks on every screen. Once the countdown begins, the choice is locked. In Java, compare the complete code on both screens and type its spaces, case, and punctuation exactly.
 2. Open **Connection check**, mark ready, and start. The exact **Shared start** timestamp must match everywhere. The countdown should end together within measured network limits.
 3. Type at different speeds, make a mistake, correct it, and delete correct characters. Only the correct prefix should contribute distance.
-4. Arrange two close finishes. Every screen must show the same single winner and finish duration. All racers stop at the confirmed result.
+4. Arrange two close finishes. Every screen must show the same single winner and finish duration. All racers stop at the confirmed result. After the winner celebration, compare the full standings and the same opening speaker: the least-progress racer opens standup. Test an exact tie at the last position; the shared draw must survive refresh without changing.
 5. Refresh during a round and briefly disconnect the network. The same name, confirmed progress, epoch, and result must recover. Watch the connection indicator.
-6. Reset. Progress and readiness return to zero; the next round uses a new epoch. Avoid duplicating an active racer tab: some browsers copy its session storage.
+6. Reset. Progress and readiness return to zero; the next round uses a new epoch and another passage from the daily deck. Three rounds exhaust the deck before recycling. Tomorrow's deck is different, including in a new room. Avoid duplicating an active racer tab: some browsers copy its session storage.
 
 Record date, region, browser, round-trip times, visible remote-update delay, and disconnects. A large idle **Last update** value in the lobby is normal because state is sent when it changes; it is not a heartbeat indicator.
 
@@ -18,7 +18,7 @@ Product target: most remote changes appear within roughly 300 ms on normal conne
 
 `npm run check` runs strict types, formatting, Cloudflare runtime integration tests, frontend building, and backend packaging. Runtime tests accelerate countdown/deadline timestamps through test-only storage helpers; the public service has no test clock controls.
 
-`npm run smoke -- API_URL FRONTEND_ORIGIN [english|spanish|java]` opens eight real WebSocket clients, confirms a shared language and passage, observes a common future start, waits through the actual countdown, advances cars, finishes concurrently, checks one shared result, and resumes a session. Input is programmatic, so finish durations are not human benchmarks. All sockets close in a finally block; the temporary room expires normally.
+`npm run smoke -- API_URL FRONTEND_ORIGIN [english|spanish|java]` opens eight real WebSocket clients, confirms a shared language and passage, observes a common future start, waits through the actual countdown, advances cars, finishes concurrently, checks one shared winner and a shared least-progress opening speaker, and resumes a session without redrawing the result. Input is programmatic, so finish durations are not human benchmarks. All sockets close in a finally block; the temporary room expires normally.
 
 ## Race scene validation
 

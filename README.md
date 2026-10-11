@@ -6,11 +6,11 @@ A short multiplayer typing race to choose who starts the daily standup.
 
 ## The standup circuit
 
-Create a room, copy its invitation link, and invite 2–8 teammates. The host chooses **English**, **Spanish**, or **Java** in the lobby. Everyone marks ready before the host starts a shared five-second countdown. Correctly typed characters advance the cars. The server confirms one winner, who starts the standup. Reset after a result to race again; the host can keep or change the language.
+Create a room, copy its invitation link, and invite 2–8 teammates. The host chooses **English**, **Spanish**, or **Java** in the lobby. Everyone marks ready before the host starts a shared five-second countdown. Correctly typed characters advance the cars. Celebrate the server-confirmed winner, then see the final standings: **the last race position opens standup**. The invitation is positive: “The opening lap is yours.” Reset after a result to race again; the host can keep or change the language.
 
-Changing the language clears everyone's readiness. Each round gives every racer the same randomly selected passage. Java uses original small classes with simple methods, loops, conditions, and reserved words. Copy the code exactly; solving or executing it is not required. Read [the passage design](docs/passages.md).
+Changing the language clears everyone's readiness. Each round gives every racer the same randomly selected passage. Each mode has **24 original challenges**, with three available per Mexico City calendar day. Consecutive daily decks never overlap, including in newly created rooms; the eight-day rotation eventually repeats. A room exhausts its daily deck before recycling and avoids immediate repeats. Themes include standup, racing, collaboration, and application security at Contrast Security. Java uses small classes with simple methods, loops, conditions, and reserved words. Copy the code exactly; solving or executing it is not required. Read [the passage design](docs/passages.md).
 
-The race uses original top-down toy cars with stable lanes. Your camera follows your car with exactly **50 meters behind and 50 meters ahead**. Opponents outside that view have direction and distance indicators; the race radar shows everyone across all 300 meters and highlights your camera window. Starting lights follow the shared countdown, correct typing moves the car, mistakes light the brakes, and the server-confirmed result triggers a short flag celebration. The HUD shows confirmed rank, average WPM, and elapsed race time.
+The race uses an original illustrated sports coupe in elevated three-quarter perspective, with detailed paint, glass, wheels, mirrors, and a spoiler. Each racer has a distinct color and stable lane. Your camera follows your car with exactly **50 meters behind and 50 meters ahead**. Opponents outside that view have direction and distance indicators; the race radar shows everyone across all 300 meters and highlights your camera window. Starting lights follow the shared countdown, correct typing moves the car, mistakes light the brakes, and the server-confirmed result triggers a short flag celebration. The HUD shows confirmed rank, average WPM, and elapsed race time. See [art provenance and generation prompt](docs/art.md).
 
 Motion approaches known positions without predicting extra progress. It pauses when positions settle or the page is hidden. **Reduce motion** switches to immediate positions and removes decorative animation; the initial setting follows the browser preference. Interface copy and project documentation are in English; gameplay text follows the chosen language. Car selection, sound, and sentence-by-sentence presentation are future work.
 
@@ -63,6 +63,8 @@ Update `ALLOWED_ORIGINS` if the frontend host changes. Deploy between races: bac
 ## Practical limits
 
 A shared server timestamp and clock estimation coordinate the start; Internet latency still exists. The first valid complete passage **received by the server** wins. Close finishes can favor lower latency. This is a casual team game without verified physical-keystroke anti-cheat.
+
+The first finish freezes everyone's distance. The table ranks those distances, with shared places for exact ties. If several racers share the least progress, the server makes one shared draw to choose the opening speaker and saves it with the result. Reconnecting cannot redraw it. Offline participants retain their confirmed distance for that round.
 
 Pasting is blocked in the interface, but a modified client can automate typing. A round ends without a winner if nobody finishes within 90 seconds. The 45–60 second goal depends on typing speed and needs team tuning.
 

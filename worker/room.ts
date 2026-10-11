@@ -1,6 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { z } from "zod";
-import { PASSAGES } from "../shared/passages";
+import { selectPassage } from "../shared/passage-selection";
+import { selectStandupStarter } from "../shared/results";
 import {
   clientMessageSchema,
   correctPrefix,
@@ -23,6 +24,8 @@ const storedPlayerSchema = snapshotSchema.shape.players.element.omit({ connected
 });
 const stateSchema = snapshotSchema.omit({ serverNow: true, players: true }).extend({
   players: z.array(storedPlayerSchema).max(MAX_PLAYERS),
+  passageDay: z.string().default(""),
+  passageHistory: z.array(z.string().max(500)).max(3).default([]),
 });
 type RoomState = z.infer<typeof stateSchema>;
 const attachmentSchema = z.object({ playerId: z.uuid().nullable() });
@@ -79,6 +82,17 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
     );
   }
 
+  private finish(state: RoomState, now: number, winnerId: string | null): void {
+    const random = crypto.getRandomValues(new Uint32Array(1))[0] ?? 0;
+    const starter = selectStandupStarter(state.players, random);
+    state.phase = "finished";
+    state.outcome = winnerId ? "completed" : "timeout";
+    state.winnerId = winnerId;
+    state.finishAt = winnerId ? now : Math.min(now, state.deadline ?? now);
+    state.standupStarterId = starter.id;
+    state.standupTieCount = starter.tieCount;
+  }
+
   private connected(id: string): boolean {
     return this.ctx
       .getWebSockets()
@@ -91,8 +105,9 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
   }
 
   private snapshot(state = this.load()): Snapshot {
+    const { passageDay: _day, passageHistory: _history, ...publicState } = state;
     return {
-      ...state,
+      ...publicState,
       serverNow: Date.now(),
       players: state.players.map(({ secretHash: _secretHash, ...player }) => ({
         ...player,
@@ -151,6 +166,10 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
       winnerId: null,
       finishAt: null,
       outcome: null,
+      standupStarterId: null,
+      standupTieCount: 0,
+      passageDay: "",
+      passageHistory: [],
       language: "english",
       passage: "",
       expiresAt: Date.now() + ROOM_LIFETIME_MS,
@@ -241,8 +260,7 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
         phaseChanged = true;
       }
       if (state.phase === "racing" && state.deadline !== null && now >= state.deadline) {
-        state.phase = "finished";
-        state.outcome = "timeout";
+        this.finish(state, now, null);
         phaseChanged = true;
       }
       if (phaseChanged) {
@@ -263,14 +281,12 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
         // A single synchronous read/modify/write owns both progress and the winner. No await here.
         player.sequence = message.sequence;
         player.progress = correctPrefix(message.text, state.passage);
-        if (player.progress === state.passage.length) {
-          state.phase = "finished";
-          state.winnerId = player.id;
-          state.finishAt = now;
-          state.outcome = "completed";
+        const completed = player.progress === state.passage.length;
+        if (completed) {
+          this.finish(state, now, player.id);
         }
         this.commit(state);
-        if (state.phase === "finished") {
+        if (completed) {
           this.broadcast();
           await this.scheduleAlarm();
         } else this.broadcastSoon();
@@ -321,8 +337,16 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
           );
         }
         const choice = crypto.getRandomValues(new Uint32Array(1))[0] ?? 0;
-        const passages = PASSAGES[state.language];
-        state.passage = passages[choice % passages.length] ?? passages[0];
+        const selected = selectPassage(
+          state.language,
+          now,
+          state.passageDay,
+          state.passageHistory,
+          choice,
+        );
+        state.passage = selected.passage;
+        state.passageDay = selected.day;
+        state.passageHistory = selected.history;
         state.raceId = crypto.randomUUID();
         state.phase = "countdown";
         state.startAt = now + COUNTDOWN_MS;
@@ -342,6 +366,8 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
         state.winnerId = null;
         state.finishAt = null;
         state.outcome = null;
+        state.standupStarterId = null;
+        state.standupTieCount = 0;
         state.passage = "";
         for (const item of state.players) {
           item.ready = false;
@@ -408,8 +434,7 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
       this.broadcast();
     }
     if (state.phase === "racing" && state.deadline !== null && now >= state.deadline) {
-      state.phase = "finished";
-      state.outcome = "timeout";
+      this.finish(state, now, null);
       this.commit(state);
       this.broadcast();
     }

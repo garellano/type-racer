@@ -116,6 +116,12 @@ try {
   );
   assert.equal(new Set(finals.map((state) => state.winnerId)).size, 1);
   assert(finals[0].winnerId, "Exactly one winner is required.");
+  assert.equal(new Set(finals.map((state) => state.standupStarterId)).size, 1);
+  assert(finals[0].standupStarterId, "One shared opening speaker is required.");
+  const least = Math.min(...finals[0].players.map((player) => player.progress));
+  const starter = finals[0].players.find((player) => player.id === finals[0].standupStarterId);
+  assert.equal(starter?.progress, least);
+  assert.notEqual(starter?.id, finals[0].winnerId);
   assert.equal(
     finals[0].players.filter((player) => player.progress === start.passage.length).length,
     1,
@@ -123,6 +129,8 @@ try {
   const resumed = await connect(host);
   const recovered = await resumed.state((state) => state.phase === "finished");
   assert.equal(recovered.winnerId, finals[0].winnerId);
+  assert.equal(recovered.standupStarterId, finals[0].standupStarterId);
+  assert.equal(recovered.standupTieCount, finals[0].standupTieCount);
   assert.equal(recovered.language, language);
   assert.equal(recovered.passage, start.passage);
   console.log(
@@ -133,6 +141,7 @@ try {
         language,
         sharedStart: new Date(start.startAt).toISOString(),
         sharedWinner: true,
+        sharedStandupOpener: true,
         progressVerified: true,
         resumeVerified: true,
       },
