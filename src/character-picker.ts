@@ -13,7 +13,7 @@ export class CharacterPicker {
       const portrait = document.createElement("span");
       portrait.className = "character-portrait";
       portrait.setAttribute("aria-hidden", "true");
-      portrait.style.backgroundImage = `url("${import.meta.env.BASE_URL}assets/sacks/${avatar.id}.webp")`;
+      portrait.style.backgroundImage = `url("${import.meta.env.BASE_URL}assets/sacks/${avatar.id}-team.webp")`;
       button.append(portrait);
       button.addEventListener("click", () => choose(avatar.id));
       this.buttons.set(avatar.id, button);

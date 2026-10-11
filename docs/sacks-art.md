@@ -1,5 +1,7 @@
 # Sack race artwork
 
+The current photo-inspired team sprites and their prompts are documented in [team-art.md](team-art.md). This file preserves the original fictional artwork used as the rendering-style reference.
+
 Generated with the built-in imagegen tool on October 11, 2026. These are fictional avatars, not portraits of teammates. Each original RGBA sheet has six poses in a three-column, two-row grid. Production sheets retain alpha and use WebP at 1152 × 768 pixels. CSS selects the pose; the renderer supplies the jump arc and ground shadow.
 
 | Character | Original                       | Runtime sheet                      |

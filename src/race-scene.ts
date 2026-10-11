@@ -343,7 +343,7 @@ export class RaceScene {
       if (state.mode === "sacks" && racer.marker.dataset.character !== avatar.id) {
         racer.marker.dataset.character = avatar.id;
         racer.marker.title = player.name;
-        racer.sackSprite.style.backgroundImage = `url("${import.meta.env.BASE_URL}assets/sacks/${avatar.id}.webp")`;
+        racer.sackSprite.style.backgroundImage = `url("${import.meta.env.BASE_URL}assets/sacks/${avatar.id}-team.webp")`;
       }
       for (const item of [racer.marker, racer.edge, racer.dot, racer.standing]) {
         item.style.setProperty("--car-color", state.mode === "sacks" ? avatar.color : paint.color);

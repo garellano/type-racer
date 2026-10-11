@@ -17,18 +17,23 @@ export const CHARACTERS: readonly {
   color: string;
   detail: string;
 }[] = [
-  { id: "sunbeam", name: "Sunbeam", color: "#9fd5b5", detail: "Blond curls · mint shirt" },
-  { id: "scout", name: "Scout", color: "#ffad59", detail: "Glasses and beard · orange shirt" },
-  { id: "clover", name: "Clover", color: "#6ebce5", detail: "Red quiff · blue shirt" },
-  { id: "juno", name: "Juno", color: "#bf9be8", detail: "Blonde ponytail · violet shirt" },
-  { id: "ember", name: "Ember", color: "#f68c7d", detail: "Auburn bob · coral shirt" },
-  { id: "sol", name: "Sol", color: "#ffcf58", detail: "Dark waves and beard · gold shirt" },
-  { id: "rio", name: "Rio", color: "#55dbd4", detail: "Teal glasses · turquoise shirt" },
-  { id: "moss", name: "Moss", color: "#9dc88d", detail: "Dark crew cut · green shirt" },
+  { id: "sunbeam", name: "Sunbeam", color: "#9fd5b5", detail: "Short blond hair · mint shirt" },
+  { id: "scout", name: "Scout", color: "#ffad59", detail: "Pale cap · sunglasses · orange shirt" },
+  { id: "clover", name: "Clover", color: "#6ebce5", detail: "Silver hair · glasses · blue shirt" },
+  { id: "juno", name: "Juno", color: "#bf9be8", detail: "Wavy dark hair · glasses · violet shirt" },
+  {
+    id: "ember",
+    name: "Ember",
+    color: "#f68c7d",
+    detail: "Dark side-swept hair · glasses · coral shirt",
+  },
+  { id: "sol", name: "Sol", color: "#ffcf58", detail: "Dark quiff and beard · gold shirt" },
+  { id: "rio", name: "Rio", color: "#55dbd4", detail: "Dark quiff · turquoise shirt" },
+  { id: "moss", name: "Moss", color: "#9dc88d", detail: "Short dark hair · green shirt" },
   { id: "orbit", name: "Orbit", color: "#ee88b2", detail: "Dark curls · raspberry shirt" },
 ];
 
-// These are team-requested fictional presets, never demographic guesses about new names.
+// These are team-requested avatar presets, never demographic guesses about new names.
 const TEAM_PRESETS: Readonly<Record<string, CharacterId>> = {
   sam: "sunbeam",
   gary: "scout",
