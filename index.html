@@ -14,16 +14,33 @@
     <main class="app">
       <header class="masthead">
         <a class="brand" href="#">TYPE<span>RACER</span><span class="brand-mark">↗</span></a
-        ><span class="prototype">The standup circuit · v0.5</span>
+        ><span class="prototype">The standup circuit · v0.6</span>
       </header>
       <section id="entry" class="entry">
         <p class="eyebrow">A little competition. A better morning.</p>
-        <h1>A quick lap.<br /><span>A shared start.</span></h1>
+        <h1>A little race.<br /><span>A shared start.</span></h1>
         <p class="intro">
           Grab a lane, invite your team, and type your way to the finish line. Celebrate the flag,
           then let the final race position open our standup. One shared start. Every voice matters.
         </p>
         <form id="entry-form">
+          <fieldset id="entry-mode" class="mode-choice">
+            <legend>Pick today's race</legend>
+            <label class="mode-card">
+              <input type="radio" name="mode" value="cars" checked />
+              <span class="mode-art mode-car-art" aria-hidden="true"></span>
+              <span
+                ><strong>Race cars</strong><small>Chrome, curves, and quick fingers.</small></span
+              >
+            </label>
+            <label class="mode-card">
+              <input type="radio" name="mode" value="sacks" />
+              <span class="mode-art mode-sack-art" aria-hidden="true"></span>
+              <span
+                ><strong>Jump with sacks</strong><small>Two letters. One happy hop.</small></span
+              >
+            </label>
+          </fieldset>
           <label for="name">Your racer name</label>
           <div class="entry-controls">
             <input
@@ -34,6 +51,17 @@
               required
               autocomplete="nickname"
             /><button id="enter" type="submit">Create a room ↗</button>
+          </div>
+          <div id="entry-character-choice" class="character-choice" hidden>
+            <p class="picker-label">
+              Meet your hopping crew <span>Choose any character you like.</span>
+            </p>
+            <div
+              id="entry-characters"
+              class="character-picker"
+              role="group"
+              aria-label="Your sack race character"
+            ></div>
           </div>
         </form>
         <div class="entry-notes">
@@ -65,6 +93,13 @@
             </button>
           </div>
           <div class="language-choice">
+            <label for="mode">Race mode</label>
+            <select id="mode" disabled>
+              <option value="cars">Race cars</option>
+              <option value="sacks">Jump with sacks</option>
+            </select>
+          </div>
+          <div class="language-choice">
             <label for="language">Race language</label>
             <select id="language" aria-describedby="language-help" disabled>
               <option value="english">English</option>
@@ -80,6 +115,17 @@
             ><button id="leave" type="button" class="subtle" hidden>Leave</button>
           </div>
         </div>
+        <div id="lobby-character-choice" class="character-choice" hidden>
+          <p class="picker-label">
+            Your hopping character <span>Pick a favorite, then mark ready.</span>
+          </p>
+          <div
+            id="lobby-characters"
+            class="character-picker"
+            role="group"
+            aria-label="Your sack race character"
+          ></div>
+        </div>
         <div class="race-layout">
           <section class="track-panel" aria-label="Live race positions">
             <div class="track-heading">
@@ -87,7 +133,7 @@
                 <span class="circuit-icon" aria-hidden="true">▦</span>
                 <div>
                   <p class="eyebrow">The standup circuit</p>
-                  <h2>Morning sprint</h2>
+                  <h2 id="circuit-title">Morning sprint</h2>
                 </div>
               </div>
               <div class="race-hud">
@@ -180,7 +226,7 @@
             </div>
             <div class="results-reveal">
               <div class="results-heading">
-                <h3>One lap, the whole team</h3>
+                <h3>One race, the whole team</h3>
                 <span>Final standings</span>
               </div>
               <table class="results-table">
@@ -213,8 +259,8 @@
             ><span id="state-version">State version: —</span>
           </div>
           <p>
-            For validation, compare the shared start and winner on each screen. Remote cars reflect
-            confirmed updates; your car responds locally while typing.
+            For validation, compare the shared start and winner on each screen. Remote racers
+            reflect confirmed updates; your racer responds locally while typing.
           </p>
         </details>
       </section>

@@ -1,8 +1,33 @@
 import { describe, expect, it } from "vitest";
 import { PASSAGES, RACE_LANGUAGES } from "../shared/passages";
 import { dailyPassages, passageDay, selectPassage } from "../shared/passage-selection";
+import { SACK_PASSAGES } from "../shared/sack-passages";
 
 describe("daily typing challenges", () => {
+  it("provides distinct sack challenges and disjoint next-day decks in every language", () => {
+    const now = Date.parse("2026-10-11T12:00:00Z");
+    for (const language of RACE_LANGUAGES) {
+      const bank = SACK_PASSAGES[language];
+      expect(bank).toHaveLength(24);
+      expect(new Set(bank).size).toBe(24);
+      for (const passage of bank) {
+        expect(passage.length).toBeGreaterThanOrEqual(150);
+        expect(passage.length).toBeLessThanOrEqual(300);
+        expect(passage).not.toMatch(/[\n\r\t]/);
+      }
+      for (let day = 0; day < 16; day++) {
+        const today = dailyPassages(language, now + day * 86400000, "sacks");
+        const tomorrow = dailyPassages(language, now + (day + 1) * 86400000, "sacks");
+        expect(today.filter((item) => tomorrow.includes(item))).toEqual([]);
+      }
+      const a = selectPassage(language, now, "", [], 0, "sacks");
+      const b = selectPassage(language, now, a.day, a.history, 0, "sacks");
+      expect(b.passage).not.toBe(a.passage);
+      expect(b.day).toMatch(/^sacks:/);
+      expect(selectPassage(language, now, b.day, b.history, 0).history).toHaveLength(1);
+    }
+  });
+
   it("contains 24 distinct complete challenges per mode within the protocol limit", () => {
     for (const language of RACE_LANGUAGES) {
       const bank = PASSAGES[language];

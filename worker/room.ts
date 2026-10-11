@@ -2,6 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { z } from "zod";
 import { selectPassage } from "../shared/passage-selection";
 import { selectStandupStarter } from "../shared/results";
+import { chooseCharacter, type CharacterId } from "../shared/characters";
 import {
   clientMessageSchema,
   correctPrefix,
@@ -17,6 +18,7 @@ import {
   type ServerMessage,
   type Session,
   type Snapshot,
+  type GameMode,
 } from "../shared/protocol";
 
 const storedPlayerSchema = snapshotSchema.shape.players.element.omit({ connected: true }).extend({
@@ -69,6 +71,14 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
       .toArray()[0];
     if (!row) throw new RoomError(404, "This room has expired or does not exist.");
     const state = stateSchema.parse(JSON.parse(row.value));
+    const used = state.players.flatMap((player) =>
+      player.characterId ? [player.characterId] : [],
+    );
+    for (const player of state.players) {
+      if (player.characterId !== null) continue;
+      player.characterId = chooseCharacter(player.name, used);
+      used.push(player.characterId);
+    }
     if (Date.now() >= state.expiresAt)
       throw new RoomError(410, "This room has expired. Create a new room.");
     return state;
@@ -150,7 +160,12 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
     await this.ctx.storage.setAlarm(Math.min(next ?? state.expiresAt, state.expiresAt));
   }
 
-  async create(roomId: string, name: string): Promise<Admission> {
+  async create(
+    roomId: string,
+    name: string,
+    mode: GameMode = "cars",
+    characterId?: CharacterId,
+  ): Promise<Admission> {
     const session = { playerId: crypto.randomUUID(), secret: crypto.randomUUID() };
     const secretHash = await hashSecret(session.secret);
     if (this.ctx.storage.sql.exec("SELECT id FROM room").toArray().length)
@@ -171,16 +186,27 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
       passageDay: "",
       passageHistory: [],
       language: "english",
+      mode,
       passage: "",
       expiresAt: Date.now() + ROOM_LIFETIME_MS,
-      players: [{ id: session.playerId, name, secretHash, ready: false, progress: 0, sequence: 0 }],
+      players: [
+        {
+          id: session.playerId,
+          name,
+          secretHash,
+          ready: false,
+          progress: 0,
+          sequence: 0,
+          characterId: characterId ?? chooseCharacter(name),
+        },
+      ],
     };
     this.commit(state);
     await this.scheduleAlarm();
     return { roomId, session };
   }
 
-  async join(name: string): Promise<Admission> {
+  async join(name: string, characterId?: CharacterId): Promise<Admission> {
     const session = { playerId: crypto.randomUUID(), secret: crypto.randomUUID() };
     const secretHash = await hashSecret(session.secret);
     const state = this.load();
@@ -195,6 +221,12 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
       ready: false,
       progress: 0,
       sequence: 0,
+      characterId:
+        characterId ??
+        chooseCharacter(
+          name,
+          state.players.flatMap((item) => (item.characterId ? [item.characterId] : [])),
+        ),
     });
     this.commit(state);
     this.broadcast();
@@ -300,6 +332,16 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
         this.broadcast();
         return;
       }
+      if (message.type === "character") {
+        if (state.phase !== "lobby")
+          throw new RoomError(409, "Choose your character in the lobby before the next round.");
+        if (player.characterId === message.characterId) return;
+        player.characterId = message.characterId;
+        player.ready = false;
+        this.commit(state);
+        this.broadcast();
+        return;
+      }
       if (message.type === "leave") {
         if (state.phase !== "lobby")
           throw new RoomError(409, "Leave after the race finishes and resets.");
@@ -316,9 +358,15 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
         throw new RoomError(403, "Only the host can control the race.");
       if (message.type === "configure") {
         if (state.phase !== "lobby")
-          throw new RoomError(409, "Change the language in the lobby before the next round.");
-        if (state.language === message.language) return;
-        state.language = message.language;
+          throw new RoomError(
+            409,
+            "Change the race mode or language in the lobby before the next round.",
+          );
+        const language = message.language ?? state.language;
+        const mode = message.mode ?? state.mode;
+        if (state.language === language && state.mode === mode) return;
+        state.language = language;
+        state.mode = mode;
         // Readiness belongs to the chosen challenge; changing it clears previous ready marks.
         for (const item of state.players) item.ready = false;
         this.commit(state);
@@ -343,6 +391,7 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
           state.passageDay,
           state.passageHistory,
           choice,
+          state.mode,
         );
         state.passage = selected.passage;
         state.passageDay = selected.day;

@@ -1,6 +1,8 @@
 import { rankPlayers, TRACK_METERS, type Snapshot } from "../shared/protocol";
 import { carAppearance } from "./garage";
 import { advanceCarMotion, parkedMotion, type CarMotion } from "./car-motion";
+import { advanceSackMotion, parkedSack, sackNeedsFrame, type SackMotion } from "./sack-motion";
+import { character, chooseCharacter } from "../shared/characters";
 import {
   approachDistance,
   cameraPosition,
@@ -24,6 +26,9 @@ type RacerVisual = {
   target: number;
   connected: boolean;
   motion: CarMotion;
+  sackSprite: HTMLElement;
+  sack: SackMotion;
+  characters: number;
 };
 
 function find<E extends HTMLElement>(root: HTMLElement, selector: string): E {
@@ -128,6 +133,7 @@ export class RaceScene {
     for (const racer of this.racers.values()) {
       racer.current = racer.target;
       racer.motion = parkedMotion(racer.motion.angle);
+      racer.sack = parkedSack(racer.characters);
       this.drawMotion(racer);
     }
     this.stop();
@@ -167,6 +173,17 @@ export class RaceScene {
     this.lastFrame = timestamp;
     let moving = false;
     for (const [id, racer] of this.racers) {
+      if (this.state.mode === "sacks") {
+        racer.sack = racer.connected
+          ? advanceSackMotion(racer.sack, racer.characters, delta, this.state.passage.length)
+          : parkedSack(racer.characters);
+        racer.current = progressMeters(racer.sack.current, this.state.passage.length);
+        this.drawMotion(racer);
+        moving ||=
+          racer.connected &&
+          sackNeedsFrame(racer.sack, racer.characters, this.state.passage.length);
+        continue;
+      }
       const previous = racer.current;
       racer.current = approachDistance(previous, racer.target, delta, id === this.ownId ? 45 : 85);
       racer.motion = racer.connected
@@ -181,6 +198,16 @@ export class RaceScene {
   };
 
   private drawMotion(racer: RacerVisual): void {
+    if (this.state?.mode === "sacks") {
+      const sack = racer.sack;
+      racer.marker.style.setProperty("--hop-lift", sack.lift.toFixed(4));
+      racer.marker.style.setProperty("--hop-tilt", `${sack.tilt.toFixed(2)}deg`);
+      racer.marker.style.setProperty("--landing", sack.landing.toFixed(4));
+      racer.sackSprite.style.backgroundPosition = `${(sack.frame % 3) * 50}% ${Math.floor(sack.frame / 3) * 100}%`;
+      racer.marker.dataset.hopFrame = String(sack.frame);
+      racer.marker.dataset.hopping = String(sack.active);
+      return;
+    }
     const motion = racer.motion;
     racer.marker.style.setProperty("--wheel-angle", `${motion.angle.toFixed(2)}deg`);
     racer.marker.style.setProperty("--drive", motion.drive.toFixed(3));
@@ -193,6 +220,7 @@ export class RaceScene {
 
   update(state: Snapshot, ownId: string, localCharacters: number, mistake: boolean): void {
     const newRace = state.raceId !== this.raceId;
+    const newMode = state.mode !== this.state?.mode;
     const firstState = !this.state;
     this.state = state;
     this.ownId = ownId;
@@ -201,6 +229,8 @@ export class RaceScene {
         ? (state.players.find((player) => player.id === ownId)?.progress ?? 0)
         : localCharacters;
     this.root.dataset.phase = state.phase;
+    this.root.dataset.mode = state.mode;
+    this.viewport.dataset.mode = state.mode;
     this.viewport.dataset.phase = state.phase;
     if (newRace) {
       this.raceId = state.raceId;
@@ -219,7 +249,14 @@ export class RaceScene {
       }
     }
     this.viewport.style.setProperty("--lane-count", String(Math.max(2, state.players.length)));
-    const laneHeight = state.players.length > 4 ? 50 : 64;
+    const laneHeight =
+      state.mode === "sacks"
+        ? state.players.length > 4
+          ? 58
+          : 94
+        : state.players.length > 4
+          ? 50
+          : 64;
     this.viewport.style.setProperty("--lane-height", `${laneHeight}px`);
     this.viewport.dataset.field = state.players.length > 4 ? "full" : "small";
     const ranks = rankPlayers(state.players);
@@ -232,6 +269,7 @@ export class RaceScene {
     state.players.forEach((player, index) => {
       let racer = this.racers.get(player.id);
       const own = player.id === ownId;
+      const characters = own && state.phase !== "finished" ? localCharacters : player.progress;
       const target = progressMeters(
         own && state.phase !== "finished" ? localCharacters : player.progress,
         state.passage.length,
@@ -239,7 +277,7 @@ export class RaceScene {
       if (!racer) {
         const marker = document.createElement("div");
         marker.className = "racer-marker";
-        marker.innerHTML = `<span class="speed-streak"><i></i><i></i><i></i></span><span class="tire-dust"><i></i><i></i><i></i></span><div class="race-car"><img class="car-sprite" alt="" width="1774" height="887" draggable="false" decoding="async"/><span class="wheel wheel-rear"></span><span class="wheel wheel-front"></span><span class="rear-light"></span><span class="headlight-beam"></span></div><span class="car-tag"></span>`;
+        marker.innerHTML = `<span class="speed-streak"><i></i><i></i><i></i></span><span class="tire-dust"><i></i><i></i><i></i></span><div class="race-car"><img class="car-sprite" alt="" width="1774" height="887" draggable="false" decoding="async"/><span class="wheel wheel-rear"></span><span class="wheel wheel-front"></span><span class="rear-light"></span><span class="headlight-beam"></span></div><span class="sack-shadow"></span><div class="sack-jumper"></div><span class="landing-puff"><i></i><i></i><i></i></span><span class="car-tag"></span>`;
         const sprite = find<HTMLImageElement>(marker, ".car-sprite");
         const label = find(marker, ".car-tag");
         const edge = document.createElement("div");
@@ -263,11 +301,15 @@ export class RaceScene {
           target,
           connected: player.connected,
           motion: parkedMotion(),
+          sackSprite: find(marker, ".sack-jumper"),
+          sack: parkedSack(characters),
+          characters,
         };
         this.racers.set(player.id, racer);
       }
       if (
         newRace ||
+        newMode ||
         firstState ||
         this.reduced ||
         !player.connected ||
@@ -276,12 +318,14 @@ export class RaceScene {
       ) {
         racer.current = target;
         racer.motion = parkedMotion(newRace ? 0 : racer.motion.angle);
+        racer.sack = parkedSack(characters);
         this.drawMotion(racer);
       }
       racer.target = target;
+      racer.characters = characters;
       racer.connected = player.connected;
       const { model, paint } = carAppearance(index, state.raceId ?? state.roomId);
-      if (racer.marker.dataset.model !== model.id) {
+      if (state.mode === "cars" && racer.marker.dataset.model !== model.id) {
         racer.marker.dataset.model = model.id;
         racer.marker.title = model.name;
         racer.sprite.src = `${import.meta.env.BASE_URL}assets/${model.asset}`;
@@ -295,8 +339,14 @@ export class RaceScene {
           racer.marker.style.setProperty(`--${name}-wheel-aspect`, String(wheel.aspect));
         }
       }
+      const avatar = character(player.characterId ?? chooseCharacter(player.name));
+      if (state.mode === "sacks" && racer.marker.dataset.character !== avatar.id) {
+        racer.marker.dataset.character = avatar.id;
+        racer.marker.title = avatar.name;
+        racer.sackSprite.style.backgroundImage = `url("${import.meta.env.BASE_URL}assets/sacks/${avatar.id}.webp")`;
+      }
       for (const item of [racer.marker, racer.edge, racer.dot, racer.standing]) {
-        item.style.setProperty("--car-color", paint.color);
+        item.style.setProperty("--car-color", state.mode === "sacks" ? avatar.color : paint.color);
         item.style.setProperty("--paint-hue", `${paint.hue}deg`);
         item.style.setProperty("--paint-saturation", String(paint.saturation));
         item.dataset.own = String(own);
@@ -332,12 +382,18 @@ export class RaceScene {
           ? winner.id === ownId
             ? "You take the flag!"
             : `${winner.name} takes the flag!`
-          : "Time's up. Another lap?",
+          : "Time's up. Another race?",
       );
     }
     this.draw();
     if (this.reduced || !this.connected) this.settle();
-    else if ([...this.racers.values()].some((racer) => racer.current !== racer.target))
+    else if (
+      [...this.racers.values()].some((racer) =>
+        state.mode === "sacks"
+          ? sackNeedsFrame(racer.sack, racer.characters, state.passage.length)
+          : racer.current !== racer.target,
+      )
+    )
       this.requestFrame();
   }
 

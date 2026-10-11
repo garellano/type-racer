@@ -41,7 +41,9 @@ export function renderResults(state: Snapshot, ownId: string): void {
     rows.append(row);
   }
   opener.textContent = starter
-    ? `${starter.name}, the opening lap is yours.`
+    ? state.mode === "sacks"
+      ? `${starter.name}, help us hop into today's standup.`
+      : `${starter.name}, the opening lap is yours.`
     : "Ready for our first update?";
   detail.textContent = starter
     ? `Kick off our standup with your update. The team is ready to listen.${state.standupTieCount > 1 ? " A shared draw settled the distance tie." : ""}`

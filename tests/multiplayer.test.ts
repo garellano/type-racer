@@ -9,6 +9,8 @@ import {
 import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { PASSAGES, RACE_LANGUAGES } from "../shared/passages";
+import { SACK_PASSAGES } from "../shared/sack-passages";
+import { CHARACTER_IDS } from "../shared/characters";
 import {
   admissionSchema,
   MAX_PLAYERS,
@@ -17,6 +19,7 @@ import {
   type ClientMessage,
   type ServerMessage,
   type Snapshot,
+  type GameMode,
 } from "../shared/protocol";
 
 const origin = "http://127.0.0.1:5173";
@@ -94,13 +97,27 @@ async function connect(admission: Admission): Promise<Probe> {
 
 async function room(
   count: number,
+  mode: GameMode = "cars",
 ): Promise<{ admissions: Admission[]; probes: Probe[]; roomId: string }> {
-  const created = await request("/rooms", { name: "Host" });
+  const team = [
+    "Sam",
+    "Gary",
+    "Wil",
+    "Kate",
+    "Devan",
+    "Gerardo",
+    "Fabián",
+    "Emanuel Medrano",
+    "Arath",
+  ];
+  const created = await request("/rooms", { name: mode === "sacks" ? team[0] : "Host", mode });
   expect(created.status).toBe(201);
   const first = admissionSchema.parse(await created.json());
   const admissions = [first];
   for (let index = 1; index < count; index++) {
-    const response = await request(`/rooms/${first.roomId}/join`, { name: `Racer ${index + 1}` });
+    const response = await request(`/rooms/${first.roomId}/join`, {
+      name: mode === "sacks" ? team[index] : `Racer ${index + 1}`,
+    });
     expect(response.status).toBe(200);
     admissions.push(admissionSchema.parse(await response.json()));
   }
@@ -161,71 +178,125 @@ afterEach(async () => {
 });
 
 describe("authoritative multiplayer races", () => {
-  it("gives nine Java racers the same start and exactly one durable winner for concurrent finishes", async () => {
-    const { admissions, probes, roomId } = await room(9);
-    probes[0]?.send({ type: "configure", language: "java" });
-    await Promise.all(probes.map((probe) => probe.snapshot((state) => state.language === "java")));
-    const starts = await countdown(probes);
-    expect(new Set(starts.map((state) => state.startAt)).size).toBe(1);
-    expect(new Set(starts.map((state) => state.raceId)).size).toBe(1);
-    expect(new Set(starts.map((state) => state.passage)).size).toBe(1);
-    expect(starts.every((state) => PASSAGES.java.includes(state.passage))).toBe(true);
-    const start = starts[0];
-    if (!start?.raceId) throw new Error("Missing race.");
-    probes.forEach((probe) =>
-      probe.send({
-        type: "progress",
-        raceId: start.raceId ?? "",
-        sequence: 1,
-        text: start.passage,
-      }),
+  it("shares host mode changes, accepts each player's character choice, and freezes both during a round", async () => {
+    const { probes, admissions } = await room(2);
+    const [host, guest] = probes;
+    if (!host || !guest) throw new Error("Missing racers.");
+    for (const probe of probes) probe.send({ type: "ready", ready: true });
+    const before = await host.snapshot((state) => state.players.every((player) => player.ready));
+    host.send({ type: "configure", mode: "sacks" });
+    const modes = await Promise.all(
+      probes.map((probe) =>
+        probe.snapshot((state) => state.version > before.version && state.mode === "sacks"),
+      ),
     );
-    probes[0]?.send({ type: "ping", sentAt: 1 });
-    await probes[0]?.waitFor((message) => message.type === "pong" && message.sentAt === 1);
-    const before = await probes[0]?.snapshot((state) => state.phase === "countdown");
-    expect(before?.players.every((player) => player.progress === 0)).toBe(true);
-    await changeTime(roomId, "start");
-    await Promise.all(probes.map((probe) => probe.snapshot((state) => state.phase === "racing")));
-    for (const probe of probes)
-      probe.send({
-        type: "progress",
-        raceId: start.raceId,
-        sequence: 2,
-        text: start.passage.slice(0, -1),
-      });
-    await probes[0]?.snapshot((state) =>
-      state.players.every((player) => player.progress === start.passage.length - 1),
+    expect(modes.every((state) => state.players.every((player) => !player.ready))).toBe(true);
+    host.send({ type: "ready", ready: true });
+    await host.snapshot((state) => state.players[0]?.ready === true);
+    guest.send({ type: "character", characterId: "ember" });
+    const choices = await Promise.all(
+      probes.map((probe) => probe.snapshot((state) => state.players[1]?.characterId === "ember")),
     );
-    for (const probe of probes)
-      probe.send({ type: "progress", raceId: start.raceId, sequence: 3, text: start.passage });
-    const results = await Promise.all(
-      probes.map((probe) => probe.snapshot((state) => state.phase === "finished")),
-    );
-    expect(new Set(results.map((state) => state.winnerId)).size).toBe(1);
-    expect(results[0]?.winnerId).not.toBeNull();
-    expect(new Set(results.map((state) => state.standupStarterId)).size).toBe(1);
-    expect(results[0]?.standupStarterId).not.toBeNull();
-    expect(results[0]?.standupStarterId).not.toBe(results[0]?.winnerId);
-    expect(results.every((state) => state.standupTieCount === probes.length - 1)).toBe(true);
-    expect(results.every((state) => state.outcome === "completed")).toBe(true);
     expect(
-      results[0]?.players.filter((player) => player.progress === start.passage.length),
-    ).toHaveLength(1);
-    await evictDurableObject(env.ROOMS.getByName(roomId));
-    const restored = await connect(admissions[0]!);
-    const persisted = await restored.snapshot((state) => state.phase === "finished");
-    expect(persisted.winnerId).toBe(results[0]?.winnerId);
-    expect(persisted.standupStarterId).toBe(results[0]?.standupStarterId);
-    expect(persisted.standupTieCount).toBe(probes.length - 1);
-    expect(persisted.language).toBe("java");
-    expect(persisted.passage).toBe(start.passage);
-    for (const probe of probes) {
-      const winnerIds = probe.messages.flatMap((message) =>
-        message.type === "snapshot" && message.state.winnerId ? [message.state.winnerId] : [],
-      );
-      expect(new Set(winnerIds).size).toBe(1);
-    }
+      choices.every(
+        (state) => state.players[0]?.ready === true && state.players[1]?.ready === false,
+      ),
+    ).toBe(true);
+    const starts = await countdown(probes);
+    const start = starts[0]!;
+    host.send({ type: "configure", mode: "cars" });
+    guest.send({ type: "character", characterId: "juno" });
+    expect(
+      await host.waitFor((message) => message.type === "error" && message.code === "409"),
+    ).toMatchObject({ code: "409" });
+    expect(
+      await guest.waitFor((message) => message.type === "error" && message.code === "409"),
+    ).toMatchObject({ code: "409" });
+    const restored = await connect(admissions[1]!);
+    const confirmed = await restored.snapshot((state) => state.raceId === start.raceId);
+    expect(confirmed.mode).toBe("sacks");
+    expect(confirmed.players[1]?.characterId).toBe("ember");
+    expect(confirmed.passage).toBe(start.passage);
   });
+
+  it.each(["cars", "sacks"] as const)(
+    "gives nine %s Java racers the same start and one durable winner for concurrent finishes",
+    async (mode) => {
+      const { admissions, probes, roomId } = await room(9, mode);
+      probes[0]?.send({ type: "configure", language: "java" });
+      await Promise.all(
+        probes.map((probe) => probe.snapshot((state) => state.language === "java")),
+      );
+      const starts = await countdown(probes);
+      expect(new Set(starts.map((state) => state.startAt)).size).toBe(1);
+      expect(new Set(starts.map((state) => state.raceId)).size).toBe(1);
+      expect(new Set(starts.map((state) => state.passage)).size).toBe(1);
+      expect(
+        starts.every((state) =>
+          (mode === "sacks" ? SACK_PASSAGES : PASSAGES).java.includes(state.passage),
+        ),
+      ).toBe(true);
+      expect(starts.every((state) => state.mode === mode)).toBe(true);
+      expect(starts[0]?.players.map((player) => player.characterId)).toEqual(CHARACTER_IDS);
+      const start = starts[0];
+      if (!start?.raceId) throw new Error("Missing race.");
+      probes.forEach((probe) =>
+        probe.send({
+          type: "progress",
+          raceId: start.raceId ?? "",
+          sequence: 1,
+          text: start.passage,
+        }),
+      );
+      probes[0]?.send({ type: "ping", sentAt: 1 });
+      await probes[0]?.waitFor((message) => message.type === "pong" && message.sentAt === 1);
+      const before = await probes[0]?.snapshot((state) => state.phase === "countdown");
+      expect(before?.players.every((player) => player.progress === 0)).toBe(true);
+      await changeTime(roomId, "start");
+      await Promise.all(probes.map((probe) => probe.snapshot((state) => state.phase === "racing")));
+      for (const probe of probes)
+        probe.send({
+          type: "progress",
+          raceId: start.raceId,
+          sequence: 2,
+          text: start.passage.slice(0, -1),
+        });
+      await probes[0]?.snapshot((state) =>
+        state.players.every((player) => player.progress === start.passage.length - 1),
+      );
+      for (const probe of probes)
+        probe.send({ type: "progress", raceId: start.raceId, sequence: 3, text: start.passage });
+      const results = await Promise.all(
+        probes.map((probe) => probe.snapshot((state) => state.phase === "finished")),
+      );
+      expect(new Set(results.map((state) => state.winnerId)).size).toBe(1);
+      expect(results[0]?.winnerId).not.toBeNull();
+      expect(new Set(results.map((state) => state.standupStarterId)).size).toBe(1);
+      expect(results[0]?.standupStarterId).not.toBeNull();
+      expect(results[0]?.standupStarterId).not.toBe(results[0]?.winnerId);
+      expect(results.every((state) => state.standupTieCount === probes.length - 1)).toBe(true);
+      expect(results.every((state) => state.outcome === "completed")).toBe(true);
+      expect(
+        results[0]?.players.filter((player) => player.progress === start.passage.length),
+      ).toHaveLength(1);
+      await evictDurableObject(env.ROOMS.getByName(roomId));
+      const restored = await connect(admissions[0]!);
+      const persisted = await restored.snapshot((state) => state.phase === "finished");
+      expect(persisted.winnerId).toBe(results[0]?.winnerId);
+      expect(persisted.standupStarterId).toBe(results[0]?.standupStarterId);
+      expect(persisted.standupTieCount).toBe(probes.length - 1);
+      expect(persisted.language).toBe("java");
+      expect(persisted.mode).toBe(mode);
+      expect(persisted.players.map((player) => player.characterId)).toEqual(CHARACTER_IDS);
+      expect(persisted.passage).toBe(start.passage);
+      for (const probe of probes) {
+        const winnerIds = probe.messages.flatMap((message) =>
+          message.type === "snapshot" && message.state.winnerId ? [message.state.winnerId] : [],
+        );
+        expect(new Set(winnerIds).size).toBe(1);
+      }
+    },
+  );
 
   it.each(RACE_LANGUAGES)(
     "shares and freezes the %s choice, retaining it after reset and recovery",
@@ -259,7 +330,9 @@ describe("authoritative multiplayer races", () => {
       host.send({ type: "configure", language: language === "java" ? "spanish" : "java" });
       expect(
         await host.waitFor(
-          (message) => message.type === "error" && message.message.includes("Change the language"),
+          (message) =>
+            message.type === "error" &&
+            message.message.includes("Change the race mode or language"),
         ),
       ).toMatchObject({ code: "409" });
       await changeTime(roomId, "start");
@@ -295,11 +368,17 @@ describe("authoritative multiplayer races", () => {
       delete stored.passageHistory;
       delete stored.standupStarterId;
       delete stored.standupTieCount;
+      delete stored.mode;
+      const players = z.array(z.record(z.string(), z.unknown())).parse(stored.players);
+      for (const player of players) delete player.characterId;
+      stored.players = players;
       context.storage.sql.exec("UPDATE room SET value = ? WHERE id = 1", JSON.stringify(stored));
     });
     await evictDurableObject(stub);
     const restored = await connect(admissions[0]!);
     const recovered = await restored.snapshot((state) => state.phase === "lobby");
+    expect(recovered.mode).toBe("cars");
+    expect(recovered.players.map((player) => player.characterId)).toEqual(["sunbeam", "scout"]);
     expect(recovered.language).toBe("english");
     expect(recovered.standupStarterId).toBeNull();
     expect(recovered.standupTieCount).toBe(0);

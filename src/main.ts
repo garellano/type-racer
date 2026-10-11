@@ -1,10 +1,14 @@
 import "./style.css";
 import "./race-scene.css";
+import "./sack-scene.css";
 import { LANGUAGE_LABELS } from "../shared/passages";
+import { chooseCharacter, type CharacterId } from "../shared/characters";
+import { CharacterPicker } from "./character-picker";
 import {
   admissionSchema,
   correctPrefix,
   languageSchema,
+  gameModeSchema,
   MAX_PLAYERS,
   rankPlayers,
   roomIdSchema,
@@ -12,6 +16,7 @@ import {
   UPDATE_INTERVAL_MS,
   type Session,
   type Snapshot,
+  type GameMode,
 } from "../shared/protocol";
 import { RaceConnection } from "./connection";
 import { RaceScene } from "./race-scene";
@@ -33,6 +38,30 @@ const startButton = element<HTMLButtonElement>("#start");
 const resetButton = element<HTMLButtonElement>("#reset");
 const leaveButton = element<HTMLButtonElement>("#leave");
 const languageSelect = element<HTMLSelectElement>("#language");
+const modeSelect = element<HTMLSelectElement>("#mode");
+let entryMode: GameMode = "cars";
+let entryCharacter: CharacterId = "sunbeam";
+let characterPicked = false;
+const entryPicker = new CharacterPicker(element("#entry-characters"), (id) => {
+  entryCharacter = id;
+  characterPicked = true;
+  entryPicker.render(id, true);
+});
+const lobbyPicker = new CharacterPicker(element("#lobby-characters"), (id) => {
+  clearError();
+  connection?.send({ type: "character", characterId: id });
+});
+entryPicker.render(entryCharacter, true);
+element("#entry-mode").addEventListener("change", (event) => {
+  if (!(event.target instanceof HTMLInputElement)) return;
+  entryMode = gameModeSchema.parse(event.target.value);
+  element("#entry-character-choice").hidden = entryMode !== "sacks";
+});
+element<HTMLInputElement>("#name").addEventListener("input", (event) => {
+  if (characterPicked || !(event.target instanceof HTMLInputElement)) return;
+  entryCharacter = chooseCharacter(event.target.value);
+  entryPicker.render(entryCharacter, true);
+});
 const scene = new RaceScene(element<HTMLElement>(".track-panel"));
 const passage = element<HTMLElement>("#passage");
 const requestedRoom = new URLSearchParams(location.hash.slice(1)).get("room");
@@ -58,12 +87,15 @@ function clearError(): void {
 if (requestedRoom && !roomId.success)
   showError("That room link is invalid. Create a new room below.");
 if (roomId.success) {
+  element("#entry-mode").hidden = true;
   element<HTMLButtonElement>("#enter").textContent = "Join the race ↗";
   element<HTMLElement>(".intro").textContent =
     "Your team has a lane waiting for you. Choose a name and join the starting grid.";
 }
 
-async function enterRoom(body: { name: string } | { session: Session }): Promise<void> {
+async function enterRoom(
+  body: { name: string; mode?: GameMode; characterId?: CharacterId } | { session: Session },
+): Promise<void> {
   clearError();
   const endpoint = roomId.success ? `/rooms/${roomId.data}/join` : "/rooms";
   const response = await fetch(new URL(endpoint, apiUrl), {
@@ -109,7 +141,12 @@ element<HTMLFormElement>("#entry-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const button = element<HTMLButtonElement>("#enter");
   button.disabled = true;
-  enterRoom({ name: element<HTMLInputElement>("#name").value.trim() })
+  enterRoom({
+    name: element<HTMLInputElement>("#name").value.trim(),
+    ...(!roomId.success
+      ? { mode: entryMode, ...(entryMode === "sacks" ? { characterId: entryCharacter } : {}) }
+      : {}),
+  })
     .catch((error: unknown) =>
       showError(error instanceof Error ? error.message : "Could not connect. Try again."),
     )
@@ -145,6 +182,11 @@ languageSelect.addEventListener("change", () => {
   connection?.send({ type: "configure", language });
   // Show only the server-confirmed choice, including if the connection drops during this event.
   if (state) languageSelect.value = state.language;
+});
+modeSelect.addEventListener("change", () => {
+  clearError();
+  connection?.send({ type: "configure", mode: gameModeSchema.parse(modeSelect.value) });
+  if (state) modeSelect.value = state.mode;
 });
 startButton.addEventListener("click", () => {
   clearError();
@@ -192,10 +234,24 @@ function receiveState(next: Snapshot): void {
 function renderState(): void {
   if (!state || !session) return;
   game.dataset.phase = state.phase;
+  game.dataset.mode = state.mode;
   const own = state.players.find((player) => player.id === session?.playerId);
   const host = state.hostId === session.playerId;
   const lobby = state.phase === "lobby";
   languageSelect.value = state.language;
+  modeSelect.value = state.mode;
+  modeSelect.disabled = !host || !lobby || connection?.status !== "connected";
+  element("#lobby-character-choice").hidden = !lobby || state.mode !== "sacks";
+  lobbyPicker.render(
+    own?.characterId ?? chooseCharacter(own?.name ?? ""),
+    lobby && connection?.status === "connected",
+  );
+  element("#circuit-title").textContent =
+    state.mode === "sacks" ? "Jump with sacks" : "Morning sprint";
+  input.placeholder =
+    state.mode === "sacks"
+      ? "Your first hop starts with the countdown…"
+      : "Your engine starts with the countdown…";
   languageSelect.disabled = !host || !lobby || connection?.status !== "connected";
   element<HTMLElement>("#language-help").textContent = !lobby
     ? "Locked for this round."
@@ -231,7 +287,12 @@ function renderState(): void {
       : "Everyone marks ready. The host starts the shared countdown."
     : state.language === "java"
       ? "Copy the code exactly, including spaces, case, and punctuation. No coding solution needed."
-      : "Type the same text as your teammates. Correct mistakes to keep moving.";
+      : state.mode === "sacks"
+        ? "Two correct characters = one hop. Correct mistakes to keep moving."
+        : "Type the same text as your teammates. Correct mistakes to keep moving.";
+  if (!lobby && state.mode === "sacks" && state.language === "java")
+    element("#race-help").textContent =
+      "Copy the Java exactly. Two correct characters = one hop, including spaces and punctuation.";
   const prefix = correctPrefix(input.value, state.passage);
   scene.update(state, session.playerId, prefix, input.value.length > prefix);
   renderResults(state, session.playerId);
@@ -242,7 +303,7 @@ function renderState(): void {
       : "Time's up. Give it another go.";
     element<HTMLElement>("#winner-detail").textContent =
       winner && state.finishAt !== null && state.startAt !== null
-        ? `${((state.finishAt - state.startAt) / 1000).toFixed(2)} seconds · confirmed for everyone · thanks for the lap, team`
+        ? `${((state.finishAt - state.startAt) / 1000).toFixed(2)} seconds · confirmed for everyone · thanks for the race, team`
         : "No racer finished within 90 seconds. The host can start a new round.";
   }
   element<HTMLElement>("#start-time").textContent =
@@ -321,6 +382,12 @@ function updateClock(): void {
     state.hostId !== session?.playerId ||
     state.phase !== "lobby" ||
     connection.status !== "connected";
+  modeSelect.disabled = languageSelect.disabled;
+  const own = state.players.find((player) => player.id === session?.playerId);
+  lobbyPicker.render(
+    own?.characterId ?? chooseCharacter(own?.name ?? ""),
+    state.phase === "lobby" && connection.status === "connected",
+  );
   startButton.disabled =
     !connection.clockReady ||
     state.players.length < 2 ||

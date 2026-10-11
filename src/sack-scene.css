@@ -1,0 +1,259 @@
+.mode-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 0;
+  margin: 24px 0;
+  border: 0;
+}
+.mode-choice legend,
+.picker-label {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.mode-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 105px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffef6;
+  cursor: pointer;
+}
+.mode-card:has(input:checked) {
+  border-color: #567748;
+  box-shadow: 0 0 0 2px #a4bd8640;
+  background: #edf3e3;
+}
+.mode-card input {
+  accent-color: #315b43;
+}
+.mode-card strong,
+.mode-card small {
+  display: block;
+}
+.mode-card strong {
+  font-size: 14px;
+}
+.mode-card small {
+  margin-top: 5px;
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.mode-art {
+  display: block;
+  flex: 0 0 84px;
+  height: 84px;
+}
+.mode-car-art {
+  background: url("/assets/arcade-coupe.webp") center / 120px auto no-repeat;
+}
+.mode-sack-art {
+  background: url("/assets/sacks/juno.webp") 0 0 / 300% 200% no-repeat;
+}
+.character-choice {
+  margin: 22px 0;
+}
+.picker-label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.picker-label span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+.character-picker {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 8px;
+}
+.character-option {
+  display: grid;
+  justify-items: center;
+  padding: 6px 3px 10px;
+  border: 1px solid #d8dfce;
+  background: #fffef6;
+  color: #32523b;
+  border-radius: 10px;
+  font-size: 10px;
+}
+.character-option:hover {
+  background: #f0f3e4;
+}
+.character-option[aria-pressed="true"] {
+  border-color: #52834e;
+  background: #e7efdb;
+  box-shadow: 0 0 0 2px #52834e30;
+}
+.character-portrait {
+  display: block;
+  width: 76px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  background-size: 300% 200%;
+  background-position: 0 0;
+  background-repeat: no-repeat;
+}
+.track-panel[data-mode="sacks"] .race-car,
+.track-panel[data-mode="sacks"] .speed-streak,
+.track-panel[data-mode="sacks"] .tire-dust {
+  display: none;
+}
+.track-panel[data-mode="cars"] :is(.sack-jumper, .sack-shadow, .landing-puff) {
+  display: none;
+}
+.race-viewport[data-mode="sacks"] {
+  --jumper-size: calc(var(--lane-height) * 1.13);
+  --hop-height: calc(var(--lane-height) * 0.19);
+  background: #537b49;
+}
+.race-viewport[data-mode="sacks"] .road-surface {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 calc(var(--lane-height) - 1px),
+      #e7ebbc99 calc(var(--lane-height) - 1px) var(--lane-height)
+    ),
+    radial-gradient(ellipse at 12px 8px, #c6d69733 0 1px, transparent 2px) 0 0 / 29px 19px,
+    repeating-linear-gradient(90deg, #78974e44 0 30px, transparent 30px 60px),
+    #658b48;
+}
+.race-viewport[data-mode="sacks"] .road-surface::after {
+  display: none;
+}
+.race-viewport[data-mode="sacks"] .trackside {
+  background:
+    radial-gradient(circle at 22px 11px, #f4d778 0 2px, transparent 3px) 0 0 / 90px 34px,
+    radial-gradient(circle at 57px 18px, #f1b5c0 0 2px, transparent 3px) 0 0 / 120px 34px,
+    #477345;
+  background-position-x: var(--road-offset);
+}
+.race-viewport[data-mode="sacks"] .trackside::after {
+  border-top: 1px solid #345e34;
+  background: repeating-linear-gradient(90deg, #eed9a3 0 24px, #da956e 24px 48px);
+  height: 7px;
+}
+.race-viewport[data-mode="sacks"] .grid-paving {
+  background: repeating-linear-gradient(90deg, #516f3e33 0 1px, transparent 1px 30px);
+}
+.sack-jumper {
+  position: absolute;
+  width: var(--jumper-size);
+  height: var(--jumper-size);
+  right: calc(var(--jumper-size) * -0.5);
+  top: calc(var(--jumper-size) * -0.9 + var(--lane-height) * 0.35);
+  background-size: 300% 200%;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  transform: translateY(calc(var(--hop-lift, 0) * var(--hop-height) * -1))
+    rotate(var(--hop-tilt, 0deg));
+  transform-origin: 50% 88%;
+  z-index: 2;
+}
+.sack-shadow {
+  position: absolute;
+  width: calc(var(--jumper-size) * 0.48);
+  height: calc(var(--jumper-size) * 0.09);
+  right: calc(var(--jumper-size) * -0.24);
+  top: calc(var(--lane-height) * 0.29);
+  border-radius: 50%;
+  background: #26351e70;
+  filter: blur(2px);
+  opacity: calc(1 - var(--hop-lift, 0) * 0.5);
+  transform: scale(calc(1 - var(--hop-lift, 0) * 0.35));
+}
+.landing-puff {
+  position: absolute;
+  top: calc(var(--lane-height) * 0.33);
+  right: calc(var(--jumper-size) * -0.4);
+  width: calc(var(--jumper-size) * 0.8);
+  height: 6px;
+  opacity: calc(var(--landing, 0) * 0.65);
+  transform: scale(calc(0.6 + var(--landing, 0) * 0.6));
+}
+.landing-puff i {
+  position: absolute;
+  width: 5px;
+  height: 3px;
+  background: #e6d9ac;
+  border-radius: 50%;
+}
+.landing-puff i:nth-child(2) {
+  left: 45%;
+  top: 2px;
+}
+.landing-puff i:nth-child(3) {
+  right: 0;
+  top: -2px;
+}
+.race-viewport[data-mode="sacks"] .car-tag {
+  right: calc(var(--jumper-size) * 0.35 + 10px);
+  top: -4px;
+  border-radius: 16px;
+  font-size: 10px;
+}
+.race-viewport[data-mode="sacks"] .racer-marker[data-own="true"] .sack-shadow {
+  background: #1f341ea8;
+  box-shadow: 0 0 0 2px #ffdf7980;
+}
+.race-viewport[data-mode="sacks"] .racer-marker[data-error="true"] .car-tag {
+  box-shadow: 0 0 0 2px #f7a088;
+}
+.race-viewport[data-mode="sacks"] .race-signal {
+  top: 12px;
+  left: 14px;
+  transform: none;
+  font-size: 12px;
+  padding: 7px 12px;
+}
+.track-panel[data-mode="sacks"] .mini-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+#game:is([data-phase="racing"], [data-phase="countdown"]) .race-viewport[data-mode="sacks"] {
+  --lane-height: clamp(36px, calc((100svh - 480px) / var(--lane-count)), 94px) !important;
+}
+@media (min-width: 1000px) {
+  #game[data-mode="sacks"]:is([data-phase="racing"], [data-phase="countdown"]):has(
+      .race-viewport[data-field="full"]
+    )
+    .race-layout {
+    grid-template-columns: minmax(0, 1fr) 310px;
+    align-items: start;
+  }
+  #game[data-mode="sacks"]:is([data-phase="racing"], [data-phase="countdown"]):has(
+      .race-viewport[data-field="full"]
+    )
+    .race-viewport {
+    --lane-height: clamp(44px, calc((100svh - 245px) / var(--lane-count)), 80px) !important;
+  }
+  #game[data-mode="sacks"]:is([data-phase="racing"], [data-phase="countdown"]) .race-hud {
+    gap: 14px;
+  }
+}
+@media (max-width: 620px) {
+  .mode-choice {
+    grid-template-columns: 1fr;
+  }
+  .mode-card {
+    min-height: 90px;
+  }
+  .character-picker {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .character-portrait {
+    width: 65px;
+  }
+  .race-viewport[data-mode="sacks"] .car-tag {
+    font-size: 8px;
+    max-width: 95px;
+    padding: 3px 5px;
+  }
+}

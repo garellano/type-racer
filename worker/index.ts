@@ -1,4 +1,4 @@
-import { entrySchema, joinSchema, roomIdSchema } from "../shared/protocol";
+import { createSchema, joinSchema, roomIdSchema } from "../shared/protocol";
 import { RaceRoom, RoomError } from "./room";
 
 export { RaceRoom };
@@ -55,7 +55,7 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
     try {
       if (url.pathname === "/rooms" && request.method === "POST") {
-        const body = entrySchema.safeParse(await jsonBody(request));
+        const body = createSchema.safeParse(await jsonBody(request));
         if (!body.success)
           throw new RoomError(
             400,
@@ -63,7 +63,10 @@ export default {
           );
         const roomId = crypto.randomUUID();
         const room = env.ROOMS.getByName(roomId, { locationHint: "enam" });
-        return Response.json(await room.create(roomId, body.data.name), { status: 201, headers });
+        return Response.json(
+          await room.create(roomId, body.data.name, body.data.mode, body.data.characterId),
+          { status: 201, headers },
+        );
       }
       const match = /^\/rooms\/([^/]+)\/(join|socket)$/.exec(url.pathname);
       const roomId = roomIdSchema.safeParse(match?.[1]);
@@ -76,7 +79,7 @@ export default {
         const admission =
           "session" in body.data
             ? await room.resume(body.data.session)
-            : await room.join(body.data.name);
+            : await room.join(body.data.name, body.data.characterId);
         return Response.json(admission, { headers });
       }
       throw new RoomError(405, "Method not allowed.");

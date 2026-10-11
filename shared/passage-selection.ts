@@ -1,4 +1,6 @@
 import { PASSAGES, type RaceLanguage } from "./passages";
+import { SACK_PASSAGES } from "./sack-passages";
+import type { GameMode } from "./protocol";
 
 export const PASSAGE_TIME_ZONE = "America/Mexico_City";
 export const DAILY_PASSAGE_COUNT = 3;
@@ -22,8 +24,12 @@ export function passageDay(now: number): { key: string; number: number } {
 }
 
 // Disjoint day groups also prevent next-day repeats when teammates create a fresh room.
-export function dailyPassages(language: RaceLanguage, now: number): readonly string[] {
-  const bank = PASSAGES[language];
+export function dailyPassages(
+  language: RaceLanguage,
+  now: number,
+  mode: GameMode = "cars",
+): readonly string[] {
+  const bank = (mode === "sacks" ? SACK_PASSAGES : PASSAGES)[language];
   const groups = Math.floor(bank.length / DAILY_PASSAGE_COUNT);
   if (groups < 2 || bank.length % DAILY_PASSAGE_COUNT !== 0)
     throw new Error("Passage banks must contain complete daily groups.");
@@ -37,9 +43,10 @@ export function selectPassage(
   previousDay: string,
   previousHistory: readonly string[],
   random: number,
+  mode: GameMode = "cars",
 ): { passage: string; day: string; history: string[] } {
-  const day = `${language}:${passageDay(now).key}`;
-  const choices = dailyPassages(language, now);
+  const day = `${mode === "sacks" ? "sacks:" : ""}${language}:${passageDay(now).key}`;
+  const choices = dailyPassages(language, now, mode);
   let history = previousDay === day ? previousHistory.filter((item) => choices.includes(item)) : [];
   let remaining = choices.filter((item) => !history.includes(item));
   if (!remaining.length) {

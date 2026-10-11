@@ -5,7 +5,9 @@ import { WebSocket } from "ws";
 const api = process.argv[2] || "http://127.0.0.1:8787";
 const origin = process.argv[3] || "http://127.0.0.1:5173";
 const language = process.argv[4] || "english";
+const mode = process.argv[5] || "cars";
 assert(["english", "spanish", "java"].includes(language), "Choose english, spanish, or java.");
+assert(["cars", "sacks"].includes(mode), "Choose cars or sacks.");
 const sockets = [];
 const racerCount = 9;
 
@@ -65,10 +67,28 @@ async function connect(admission) {
 }
 
 try {
-  const host = await post("/rooms", { name: "Smoke Host" });
+  const team = [
+    "Sam",
+    "Gary",
+    "Wil",
+    "Kate",
+    "Devan",
+    "Gerardo",
+    "Fabián",
+    "Emanuel Medrano",
+    "Arath",
+  ];
+  const host = await post(
+    "/rooms",
+    mode === "sacks" ? { name: team[0], mode } : { name: "Smoke Host" },
+  );
   const admissions = [host];
   for (let index = 1; index < racerCount; index++)
-    admissions.push(await post(`/rooms/${host.roomId}/join`, { name: `Smoke Racer ${index + 1}` }));
+    admissions.push(
+      await post(`/rooms/${host.roomId}/join`, {
+        name: mode === "sacks" ? team[index] : `Smoke Racer ${index + 1}`,
+      }),
+    );
   const clients = [];
   for (const admission of admissions) clients.push(await connect(admission));
   if (language !== "english") clients[0].send({ type: "configure", language });
@@ -89,6 +109,17 @@ try {
     "Shared language must match.",
   );
   const start = starts[0];
+  assert(
+    starts.every((state) => state.mode === mode),
+    "Shared race mode must match.",
+  );
+  assert.equal(new Set(start.players.map((player) => player.characterId)).size, racerCount);
+  assert.equal(
+    new Set(
+      starts.map((state) => JSON.stringify(state.players.map((player) => player.characterId))),
+    ).size,
+    1,
+  );
   assert(start.startAt > Date.now(), "Countdown must be scheduled in the future.");
   clients[0].send({ type: "progress", raceId: start.raceId, sequence: 1, text: start.passage });
   await delay(200);
@@ -133,6 +164,11 @@ try {
   assert.equal(recovered.standupStarterId, finals[0].standupStarterId);
   assert.equal(recovered.standupTieCount, finals[0].standupTieCount);
   assert.equal(recovered.language, language);
+  assert.equal(recovered.mode, mode);
+  assert.deepEqual(
+    recovered.players.map((player) => player.characterId),
+    start.players.map((player) => player.characterId),
+  );
   assert.equal(recovered.passage, start.passage);
   console.log(
     JSON.stringify(
@@ -140,6 +176,8 @@ try {
         status: "passed",
         clients: clients.length,
         language,
+        mode,
+        sharedCharacters: true,
         sharedStart: new Date(start.startAt).toISOString(),
         sharedWinner: true,
         sharedStandupOpener: true,

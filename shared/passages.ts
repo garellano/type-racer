@@ -11,7 +11,7 @@ export const LANGUAGE_LABELS: Record<RaceLanguage, string> = {
 // Java challenges are original, single-line classes; players copy code, never execute it.
 export const PASSAGES: Record<RaceLanguage, readonly [string, ...string[]]> = {
   english: [
-    "The morning sun lights up the track. Eight little cars wait for the signal. Find a steady rhythm and let each correct letter carry you forward. The flag celebrates the race; the opening update brings us back together. Every lane belongs to the team.",
+    "The morning sun lights up the track. Little cars wait for the signal. Find a steady rhythm and let each correct letter carry you forward. The flag celebrates the race; the opening update brings us back together. Every lane belongs to the team.",
     "A fresh cup of coffee sits beside the keyboard. Across the ocean, teammates gather for a quick race before standup. Type with care, correct your mistakes, and keep going. One car will reach the flag first. The whole team gets a bright start.",
     "At Contrast Security, our team starts the morning with a little racing and a lot of curiosity. A clear update can help a teammate move forward. Share what you learned, name a blocker, and make room for the next voice. The conversation is a team effort.",
     "The circuit winds past a quiet park and a row of bright garages. A mechanic checks the tires while the starting lights count down. There is no perfect lap to chase today. Find your pace, enjoy the little cars, and bring that same calm to the meeting.",
@@ -37,7 +37,7 @@ export const PASSAGES: Record<RaceLanguage, readonly [string, ...string[]]> = {
     "The track has space for different rhythms, just as our Contrast Security team has space for different perspectives. A result is only a moment on the road. Once the flag falls, one voice opens the meeting and the whole team helps shape the day ahead.",
   ],
   spanish: [
-    "El sol de la mañana ilumina la pista. Ocho carritos esperan la señal. Encuentra un ritmo constante y deja que cada letra correcta te acerque a la meta. Respira, corrige con calma y disfruta la carrera. Tu equipo está listo para comenzar.",
+    "El sol de la mañana ilumina la pista. Los carritos esperan la señal. Encuentra un ritmo constante y deja que cada letra correcta te acerque a la meta. Respira, corrige con calma y disfruta la carrera. Tu equipo está listo para comenzar.",
     "Una taza de café espera junto al teclado. Al otro lado del océano, el equipo se reúne para una carrera antes de la junta. Escribe con cuidado y corrige con calma. La bandera celebra la carrera; después, una voz abre la charla y el equipo sigue adelante.",
     "En Contrast Security, nuestro equipo comienza la mañana con una pequeña carrera y mucha curiosidad. Una actualización clara puede ayudar a alguien a avanzar. Comparte lo que aprendiste, menciona una duda y deja espacio para la siguiente voz.",
     "El circuito pasa junto a un parque tranquilo y una fila de talleres. Alguien revisa las llantas mientras el semáforo cuenta los segundos. Encuentra tu propio ritmo y disfruta los carritos. Esa misma calma también tiene un lugar en la junta de hoy.",

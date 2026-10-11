@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { RACE_LANGUAGES } from "./passages";
+import { CHARACTER_IDS } from "./characters";
 
 export const MAX_PLAYERS = 9;
 export const COUNTDOWN_MS = 5000;
@@ -10,6 +11,13 @@ export const MAX_MESSAGE_BYTES = 2048;
 export const TRACK_METERS = 300;
 
 export const languageSchema = z.enum(RACE_LANGUAGES);
+export const gameModeSchema = z.enum(["cars", "sacks"]);
+export type GameMode = z.infer<typeof gameModeSchema>;
+export const GAME_MODE_LABELS: Record<GameMode, string> = {
+  cars: "Race cars",
+  sacks: "Jump with sacks",
+};
+export const characterIdSchema = z.enum(CHARACTER_IDS);
 export const roomIdSchema = z.uuid();
 export const nameSchema = z
   .string()
@@ -19,7 +27,10 @@ export const nameSchema = z
   .regex(/^[\p{L}\p{N} ._'-]+$/u);
 export const sessionSchema = z.object({ playerId: z.uuid(), secret: z.uuid() }).strict();
 export type Session = z.infer<typeof sessionSchema>;
-export const entrySchema = z.object({ name: nameSchema }).strict();
+export const entrySchema = z
+  .object({ name: nameSchema, characterId: characterIdSchema.optional() })
+  .strict();
+export const createSchema = entrySchema.extend({ mode: gameModeSchema.default("cars") });
 export const joinSchema = z.union([entrySchema, z.object({ session: sessionSchema }).strict()]);
 export const admissionSchema = z.object({ roomId: roomIdSchema, session: sessionSchema });
 export type Admission = z.infer<typeof admissionSchema>;
@@ -28,7 +39,15 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("hello"), session: sessionSchema }).strict(),
   z.object({ type: z.literal("ping"), sentAt: z.number().finite() }).strict(),
   z.object({ type: z.literal("ready"), ready: z.boolean() }).strict(),
-  z.object({ type: z.literal("configure"), language: languageSchema }).strict(),
+  z
+    .object({
+      type: z.literal("configure"),
+      language: languageSchema.optional(),
+      mode: gameModeSchema.optional(),
+    })
+    .strict()
+    .refine((value) => value.language !== undefined || value.mode !== undefined),
+  z.object({ type: z.literal("character"), characterId: characterIdSchema }).strict(),
   z.object({ type: z.literal("start") }).strict(),
   z.object({ type: z.literal("reset") }).strict(),
   z.object({ type: z.literal("leave") }).strict(),
@@ -50,6 +69,7 @@ export const playerSchema = z.object({
   connected: z.boolean(),
   progress: z.int().min(0).max(500),
   sequence: z.int().min(0),
+  characterId: characterIdSchema.nullable().default(null),
 });
 export type Player = z.infer<typeof playerSchema>;
 export const snapshotSchema = z.object({
@@ -68,6 +88,7 @@ export const snapshotSchema = z.object({
   outcome: z.enum(["completed", "timeout"]).nullable(),
   // Existing stored rooms and older snapshots predate language selection.
   language: languageSchema.default("english"),
+  mode: gameModeSchema.default("cars"),
   passage: z.string(),
   expiresAt: z.number(),
   players: z.array(playerSchema).max(MAX_PLAYERS),

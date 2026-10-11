@@ -9,6 +9,7 @@ const player = (id: string, progress: number): Player => ({
   ready: true,
   connected: true,
   sequence: 1,
+  characterId: null,
 });
 
 describe("the opening standup update", () => {

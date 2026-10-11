@@ -16,7 +16,7 @@ Type Racer is a short multiplayer typing race for 2–9 standup participants. Pr
 ## Multiplayer correctness
 
 - One SQLite-backed Durable Object owns each room. The server controls the race epoch, start time, valid progress, and final result.
-- Only the host chooses a race language in the lobby. Changing it clears readiness; freeze both the language and shared passage for the round.
+- Only the host chooses the race mode and language in the lobby. Changing either clears readiness; freeze mode, language, characters, and shared passage for the round. Each participant chooses only their own character before the countdown; changing it clears their readiness.
 - Never trust client coordinates, finish times, player identities, or host claims. Authenticate sessions and validate every message.
 - Make winner selection and persistence synchronous and atomic. Do not await external work between reading race state and committing a winner.
 - Freeze standings when the round ends. Select the opening speaker from the least-progress group on the server, drawing once for an exact tie; persist that choice with the result. Never ridicule a teammate or label them a loser.
@@ -35,6 +35,8 @@ Type Racer is a short multiplayer typing race for 2–9 standup participants. Pr
 - Honor reduced-motion preferences and provide an explicit toggle. Freeze disconnected racers; decorative effects must not suggest continued progress.
 - Use original artwork, preserve image alpha, document generated asset provenance, and insert all player-provided text with textContent.
 - Keep at least five distinct car models in the garage. Use different models before repeating in the field and distinct colors for all nine seats. Derive appearances from shared identity so all screens and reconnections show the same cars.
+- Preserve both Race cars and Jump with sacks. Maintain at least eight distinct fictional sack characters, six jump poses, and one ordinary hop per two correct characters. Allow an odd final character to reach the finish; catch up delayed network bursts without replaying an unbounded queue. Finish, disconnect, hidden-page, and reduced-motion states must stop hops.
+- Use only the explicitly requested team-name presets. Do not infer gender, skin tone, nationality, or ethnicity for unfamiliar names. Every participant may choose any character; persist the choice on the server.
 
 ## Security and cost
 

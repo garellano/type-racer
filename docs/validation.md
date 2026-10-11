@@ -18,7 +18,7 @@ Product target: most remote changes appear within roughly 300 ms on normal conne
 
 `npm run check` runs strict types, formatting, Cloudflare runtime integration tests, frontend building, and backend packaging. Runtime tests accelerate countdown/deadline timestamps through test-only storage helpers; the public service has no test clock controls.
 
-`npm run smoke -- API_URL FRONTEND_ORIGIN [english|spanish|java]` opens nine real WebSocket clients, confirms a shared language and passage, observes a common future start, waits through the actual countdown, advances cars, finishes concurrently, checks one shared winner and a shared least-progress opening speaker, and resumes a session without redrawing the result. Input is programmatic, so finish durations are not human benchmarks. All sockets close in a finally block; the temporary room expires normally.
+`npm run smoke -- API_URL FRONTEND_ORIGIN [english|spanish|java] [cars|sacks]` opens nine real WebSocket clients, confirms a shared mode, language, characters, and passage, observes a common future start, waits through the actual countdown, advances racers, finishes concurrently, checks one shared winner and a shared least-progress opening speaker, and resumes a session without redrawing the result. Input is programmatic, so finish durations are not human benchmarks. All sockets close in a finally block; the temporary room expires normally.
 
 ## Race scene validation
 
@@ -30,3 +30,11 @@ Product target: most remote changes appear within roughly 300 ms on normal conne
 6. Finish, compare the same winner everywhere, and reset. Check that the result celebration runs briefly, then stops, and that the next countdown starts from the grid. Try nine racers and a narrow viewport; names remain available in standings. Confirm six distinct model sprites and nine different colors. With five racers, all five models must be different. Compare the same participant's model and color on another screen and after refresh. Start another round and verify that the model rotation comes from the shared round identity.
 
 Camera bounds, radar clipping, frame-rate-independent damping, distance-based wheel rotation, backward corrections, finite suspension settling, bounded decoration, and shared timer formatting have automated tests. Browser validation covers the actual scene; it does not establish cross-region latency or guarantee a particular frame rate. Deploy backend changes between races because deployments disconnect sockets.
+
+## Sack race validation
+
+Choose **Jump with sacks** at entry, then test a round with nine racers. Confirm the nine team-requested presets, including Juno for Kate and Ember for Devan. Choose another character and check that the same avatar appears on a second screen and after refresh. Only your own readiness clears. Changing the host's race mode clears all readiness. Mode and characters lock at countdown.
+
+Type one correct character: the character stays grounded. Type the second: crouch, takeoff, apex, descent, landing, then ready. Continue slowly and quickly; the shadow shrinks in flight and the landing puff is brief. Make a typo and delete text: no unearned hop continues. Reduced motion uses immediate positions and a static pose. Reconnect, hide the page, and finish: hops stop and no stale queue replays. An odd final character reaches the same single server-confirmed finish.
+
+With five or more racers on a wide desktop, the typing challenge moves beside the course so all lanes and the keyboard remain available. Smaller fields use the stacked layout. The personal camera and radar use the same 50-meter bounds as cars. Check English, Spanish, and Java sack passages, final rankings, and the shared welcoming standup invitation.
