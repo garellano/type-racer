@@ -1,5 +1,6 @@
 import { rankPlayers, TRACK_METERS, type Snapshot } from "../shared/protocol";
 import { carAppearance } from "./garage";
+import { advanceCarMotion, parkedMotion, type CarMotion } from "./car-motion";
 import {
   approachDistance,
   cameraPosition,
@@ -22,6 +23,7 @@ type RacerVisual = {
   current: number;
   target: number;
   connected: boolean;
+  motion: CarMotion;
 };
 
 function find<E extends HTMLElement>(root: HTMLElement, selector: string): E {
@@ -101,6 +103,7 @@ export class RaceScene {
       }
     });
     this.resize.observe(this.viewport);
+    this.root.dataset.pageHidden = String(document.hidden);
     this.setReduced(this.preference.matches);
     this.motionButton.addEventListener("click", this.toggleMotion);
     this.preference.addEventListener("change", this.changePreference);
@@ -110,8 +113,8 @@ export class RaceScene {
   private readonly toggleMotion = () => this.setReduced(!this.reduced);
   private readonly changePreference = () => this.setReduced(this.preference.matches);
   private readonly changeVisibility = () => {
-    this.stop();
-    if (!document.hidden) this.settle();
+    this.root.dataset.pageHidden = String(document.hidden);
+    this.settle();
   };
 
   private setReduced(value: boolean): void {
@@ -122,7 +125,11 @@ export class RaceScene {
   }
 
   private settle(): void {
-    for (const racer of this.racers.values()) racer.current = racer.target;
+    for (const racer of this.racers.values()) {
+      racer.current = racer.target;
+      racer.motion = parkedMotion(racer.motion.angle);
+      this.drawMotion(racer);
+    }
     this.stop();
     this.draw();
   }
@@ -152,20 +159,37 @@ export class RaceScene {
 
   private readonly animate = (timestamp: number): void => {
     this.frame = undefined;
+    if (this.reduced || !this.connected || this.state?.phase !== "racing") {
+      this.settle();
+      return;
+    }
     const delta = this.lastFrame ? Math.min(64, timestamp - this.lastFrame) : 16;
     this.lastFrame = timestamp;
     let moving = false;
     for (const [id, racer] of this.racers) {
       const previous = racer.current;
       racer.current = approachDistance(previous, racer.target, delta, id === this.ownId ? 45 : 85);
-      const inMotion = Math.abs(racer.current - previous) > 0.001;
-      racer.marker.dataset.moving = String(inMotion && racer.connected && !this.reduced);
-      moving ||= racer.current !== racer.target;
+      racer.motion = racer.connected
+        ? advanceCarMotion(racer.motion, racer.current - previous, delta)
+        : parkedMotion(racer.motion.angle);
+      this.drawMotion(racer);
+      moving ||= racer.current !== racer.target || racer.motion.drive > 0;
     }
     this.draw();
     if (moving) this.requestFrame();
     else this.stop();
   };
+
+  private drawMotion(racer: RacerVisual): void {
+    const motion = racer.motion;
+    racer.marker.style.setProperty("--wheel-angle", `${motion.angle.toFixed(2)}deg`);
+    racer.marker.style.setProperty("--drive", motion.drive.toFixed(3));
+    racer.marker.style.setProperty("--chassis-lift", `${motion.lift.toFixed(2)}px`);
+    racer.marker.style.setProperty("--chassis-pitch", `${motion.pitch.toFixed(2)}deg`);
+    racer.marker.style.setProperty("--brake", motion.brake.toFixed(3));
+    racer.marker.style.setProperty("--trail-shift", `${((motion.angle / 360) * 28).toFixed(2)}px`);
+    racer.marker.dataset.moving = String(motion.drive > 0);
+  }
 
   update(state: Snapshot, ownId: string, localCharacters: number, mistake: boolean): void {
     const newRace = state.raceId !== this.raceId;
@@ -215,7 +239,7 @@ export class RaceScene {
       if (!racer) {
         const marker = document.createElement("div");
         marker.className = "racer-marker";
-        marker.innerHTML = `<span class="speed-streak"></span><div class="race-car"><img class="car-sprite" alt="" width="1774" height="887" draggable="false" decoding="async"/><span class="wheel wheel-rear"></span><span class="wheel wheel-front"></span><span class="rear-light"></span><span class="headlight-beam"></span></div><span class="car-tag"></span>`;
+        marker.innerHTML = `<span class="speed-streak"><i></i><i></i><i></i></span><span class="tire-dust"><i></i><i></i><i></i></span><div class="race-car"><img class="car-sprite" alt="" width="1774" height="887" draggable="false" decoding="async"/><span class="wheel wheel-rear"></span><span class="wheel wheel-front"></span><span class="rear-light"></span><span class="headlight-beam"></span></div><span class="car-tag"></span>`;
         const sprite = find<HTMLImageElement>(marker, ".car-sprite");
         const label = find(marker, ".car-tag");
         const edge = document.createElement("div");
@@ -238,11 +262,22 @@ export class RaceScene {
           current: target,
           target,
           connected: player.connected,
+          motion: parkedMotion(),
         };
         this.racers.set(player.id, racer);
       }
-      if (newRace || firstState || this.reduced || !player.connected || !this.connected)
+      if (
+        newRace ||
+        firstState ||
+        this.reduced ||
+        !player.connected ||
+        !this.connected ||
+        state.phase !== "racing"
+      ) {
         racer.current = target;
+        racer.motion = parkedMotion(newRace ? 0 : racer.motion.angle);
+        this.drawMotion(racer);
+      }
       racer.target = target;
       racer.connected = player.connected;
       const { model, paint } = carAppearance(index, state.raceId ?? state.roomId);
@@ -250,10 +285,15 @@ export class RaceScene {
         racer.marker.dataset.model = model.id;
         racer.marker.title = model.name;
         racer.sprite.src = `${import.meta.env.BASE_URL}assets/${model.asset}`;
-        racer.marker.style.setProperty("--rear-wheel-x", `${model.rearWheel[0]}%`);
-        racer.marker.style.setProperty("--rear-wheel-y", `${model.rearWheel[1]}%`);
-        racer.marker.style.setProperty("--front-wheel-x", `${model.frontWheel[0]}%`);
-        racer.marker.style.setProperty("--front-wheel-y", `${model.frontWheel[1]}%`);
+        for (const [name, wheel] of [
+          ["rear", model.rearWheel],
+          ["front", model.frontWheel],
+        ] as const) {
+          racer.marker.style.setProperty(`--${name}-wheel-x`, `${wheel.x}%`);
+          racer.marker.style.setProperty(`--${name}-wheel-y`, `${wheel.y}%`);
+          racer.marker.style.setProperty(`--${name}-wheel-size`, `${wheel.diameter}%`);
+          racer.marker.style.setProperty(`--${name}-wheel-aspect`, String(wheel.aspect));
+        }
       }
       for (const item of [racer.marker, racer.edge, racer.dot, racer.standing]) {
         item.style.setProperty("--car-color", paint.color);
@@ -329,14 +369,14 @@ export class RaceScene {
         racer.edge,
         `${position > 1 ? "" : "← "}${racer.label.textContent ?? ""} · ${Math.round(Math.abs(racer.current - focus))} m${position > 1 ? " →" : ""}`,
       );
-      if (racer.current === racer.target) racer.marker.dataset.moving = "false";
     }
   }
 
   tick(now: number, connected: boolean, clockReady: boolean): void {
     this.now = now;
-    if (this.connected && !connected) this.settle();
+    const lostConnection = this.connected && !connected;
     this.connected = connected;
+    if (lostConnection) this.settle();
     this.clockReady = clockReady;
     const state = this.state;
     if (!state) return;
@@ -348,6 +388,9 @@ export class RaceScene {
     const wpm = elapsed >= 1000 ? Math.round(this.ownCharacters / 5 / (elapsed / 60000)) : 0;
     text(this.wpm, String(Math.min(999, wpm)));
     const countdown = state.startAt === null ? 0 : Math.ceil((state.startAt - now) / 1000);
+    this.root.dataset.engine = String(
+      state.phase === "countdown" && countdown > 0 && connected && clockReady,
+    );
     const go = state.startAt !== null && now >= state.startAt && now < state.startAt + 1100;
     const showSignal =
       state.phase !== "finished" &&
@@ -377,7 +420,8 @@ export class RaceScene {
   }
 
   destroy(): void {
-    this.stop();
+    this.root.dataset.engine = "false";
+    this.settle();
     this.resize.disconnect();
     this.motionButton.removeEventListener("click", this.toggleMotion);
     this.preference.removeEventListener("change", this.changePreference);

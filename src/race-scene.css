@@ -205,6 +205,8 @@
   height: calc(var(--car-size, 144px) / 2);
   filter: drop-shadow(-3px 5px 2px #15262a90);
   z-index: 2;
+  transform: translateY(var(--chassis-lift, 0px)) rotate(var(--chassis-pitch, 0deg));
+  transform-origin: 50% 80%;
 }
 .car-sprite {
   display: block;
@@ -216,33 +218,47 @@
 }
 .wheel {
   position: absolute;
-  width: 10.5%;
+  width: var(--wheel-size);
   aspect-ratio: 1;
-  transform: translate(-50%, -50%) scaleX(0.85);
+  transform: translate(-50%, -50%) scaleX(var(--wheel-aspect));
   border-radius: 50%;
   overflow: hidden;
-  opacity: 0;
+  opacity: var(--drive, 0);
+  background: radial-gradient(circle, #141b21 0 56%, #c1c8cc 59% 66%, #303a40 71%);
+  box-shadow: inset 0 0 1px #f8fcff;
+}
+.wheel::before {
+  content: "";
+  position: absolute;
+  inset: 40%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fcffff, #606e79);
+  z-index: 1;
 }
 .wheel::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: 9%;
   border-radius: inherit;
-  background: repeating-conic-gradient(#e8e9e7bb 0deg 7deg, transparent 7deg 72deg);
+  background: repeating-conic-gradient(
+    #c9d4da 0deg 5deg,
+    #f6fbff 5deg 11deg,
+    #7b8b96 11deg 17deg,
+    transparent 17deg 72deg
+  );
+  transform: rotate(var(--wheel-angle, 0deg));
 }
 .wheel-rear {
+  --wheel-size: var(--rear-wheel-size, 13.6%);
+  --wheel-aspect: var(--rear-wheel-aspect, 0.85);
   left: var(--rear-wheel-x, 18.3%);
   top: var(--rear-wheel-y, 66%);
 }
 .wheel-front {
+  --wheel-size: var(--front-wheel-size, 13.8%);
+  --wheel-aspect: var(--front-wheel-aspect, 0.9);
   left: var(--front-wheel-x, 73%);
   top: var(--front-wheel-y, 73%);
-}
-.racer-marker[data-moving="true"] .wheel {
-  opacity: 0.45;
-}
-.racer-marker[data-moving="true"] .wheel::after {
-  animation: wheel-turn 400ms linear infinite;
 }
 .rear-light {
   position: absolute;
@@ -251,7 +267,7 @@
   left: 3.5%;
   top: 34%;
   border-radius: 50%;
-  opacity: 0;
+  opacity: var(--brake, 0);
   background: #ff6851;
   box-shadow: 0 0 6px 2px #ff684aa6;
 }
@@ -263,10 +279,7 @@
   height: 20%;
   background: linear-gradient(90deg, #ffefb21f, transparent);
   clip-path: polygon(0 35%, 100% 0, 100% 100%, 0 65%);
-  opacity: 0;
-}
-.racer-marker[data-moving="true"] .headlight-beam {
-  opacity: 1;
+  opacity: var(--drive, 0);
 }
 .racer-marker[data-error="true"] .rear-light {
   opacity: 1;
@@ -302,19 +315,66 @@
 }
 .speed-streak {
   position: absolute;
-  right: calc(var(--car-size, 144px) - 8px);
-  top: -12px;
-  height: 24px;
-  width: 40px;
-  opacity: 0;
-  background: linear-gradient(90deg, transparent, #dcefe54d);
-  clip-path: polygon(0 20%, 100% 0, 100% 100%, 0 80%, 40% 50%);
+  right: calc(var(--car-size, 144px) - 12px);
+  top: -7px;
+  height: 27px;
+  width: 62px;
+  opacity: var(--drive, 0);
+  transform: translateX(calc(var(--trail-shift, 0px) * -1));
 }
-.racer-marker[data-moving="true"] .speed-streak {
-  opacity: 1;
+.speed-streak i {
+  position: absolute;
+  height: 1px;
+  width: 80%;
+  right: 0;
+  top: 0;
+  background: linear-gradient(90deg, transparent, #e6f5e998);
+  border-radius: 2px;
 }
-.racer-marker[data-moving="true"] .race-car {
-  animation: chassis 180ms ease-in-out infinite alternate;
+.speed-streak i:nth-child(2) {
+  top: 12px;
+  right: 13px;
+  width: 55%;
+}
+.speed-streak i:nth-child(3) {
+  top: 25px;
+  right: 5px;
+  width: 70%;
+}
+.tire-dust {
+  position: absolute;
+  right: calc(var(--car-size, 144px) * 0.85);
+  top: calc(var(--car-size, 144px) * 0.12);
+  width: 30px;
+  height: 12px;
+  opacity: calc(var(--drive, 0) * 0.5);
+  transform: translateX(calc(var(--trail-shift, 0px) * -0.5));
+}
+.tire-dust i {
+  position: absolute;
+  right: 0;
+  width: 4px;
+  height: 3px;
+  border-radius: 50%;
+  background: #d7dfc7;
+}
+.tire-dust i:nth-child(2) {
+  right: 11px;
+  top: 4px;
+  opacity: 0.6;
+}
+.tire-dust i:nth-child(3) {
+  right: 23px;
+  top: -3px;
+  opacity: 0.3;
+}
+.track-panel[data-engine="true"] .racer-marker[data-connected="true"] .race-car {
+  animation: engine-ready 220ms ease-in-out infinite alternate;
+}
+.track-panel[data-page-hidden="true"] *,
+.track-panel[data-page-hidden="true"] *::before,
+.track-panel[data-page-hidden="true"] *::after {
+  animation-play-state: paused !important;
 }
 .edge-racer {
   position: absolute;
@@ -726,14 +786,9 @@
   min-height: 54px;
   padding: 8px 12px;
 }
-@keyframes chassis {
+@keyframes engine-ready {
   to {
-    transform: translateY(-0.6px);
-  }
-}
-@keyframes wheel-turn {
-  to {
-    transform: rotate(360deg);
+    transform: translateY(-0.8px) rotate(-0.2deg);
   }
 }
 @keyframes finish-entrance {
@@ -758,7 +813,9 @@
   transition: none !important;
 }
 .track-panel[data-reduced-motion="true"] .confetti,
-.track-panel[data-reduced-motion="true"] .speed-streak {
+.track-panel[data-reduced-motion="true"] .speed-streak,
+.track-panel[data-reduced-motion="true"] .tire-dust,
+.track-panel[data-reduced-motion="true"] .wheel {
   display: none;
 }
 .results-panel {

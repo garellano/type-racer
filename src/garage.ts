@@ -1,11 +1,16 @@
-type WheelPosition = readonly [number, number];
+type WheelGeometry = {
+  x: number;
+  y: number;
+  diameter: number;
+  aspect: number;
+};
 
 export type CarModel = {
   id: string;
   name: string;
   asset: string;
-  rearWheel: WheelPosition;
-  frontWheel: WheelPosition;
+  rearWheel: WheelGeometry;
+  frontWheel: WheelGeometry;
 };
 
 export const CAR_MODELS: readonly CarModel[] = [
@@ -13,43 +18,43 @@ export const CAR_MODELS: readonly CarModel[] = [
     id: "coupe",
     name: "Sport coupe",
     asset: "arcade-coupe.webp",
-    rearWheel: [18.3, 66],
-    frontWheel: [73, 73],
+    rearWheel: { x: 18.3, y: 66, diameter: 13.6, aspect: 0.85 },
+    frontWheel: { x: 73, y: 73, diameter: 13.8, aspect: 0.9 },
   },
   {
     id: "rally",
     name: "Rally hatchback",
     asset: "rally-hatch.webp",
-    rearWheel: [15.4, 70],
-    frontWheel: [66.5, 80.2],
+    rearWheel: { x: 15.4, y: 70, diameter: 12.3, aspect: 0.82 },
+    frontWheel: { x: 66.5, y: 80.2, diameter: 13.4, aspect: 0.86 },
   },
   {
     id: "muscle",
     name: "Muscle fastback",
     asset: "muscle-fastback.webp",
-    rearWheel: [15.5, 60],
-    frontWheel: [59.3, 74.5],
+    rearWheel: { x: 15.5, y: 60, diameter: 11.7, aspect: 0.76 },
+    frontWheel: { x: 59.3, y: 74.5, diameter: 11.4, aspect: 0.8 },
   },
   {
     id: "roadster",
     name: "Open roadster",
     asset: "open-roadster.webp",
-    rearWheel: [17.3, 64.4],
-    frontWheel: [68.5, 76.1],
+    rearWheel: { x: 17.3, y: 64.4, diameter: 12.8, aspect: 0.88 },
+    frontWheel: { x: 68.5, y: 76.1, diameter: 12.5, aspect: 0.93 },
   },
   {
     id: "pickup",
     name: "Sport pickup",
     asset: "sport-pickup.webp",
-    rearWheel: [15.8, 61.3],
-    frontWheel: [64.4, 71.3],
+    rearWheel: { x: 15.8, y: 61.3, diameter: 12.3, aspect: 0.81 },
+    frontWheel: { x: 64.4, y: 71.3, diameter: 12.7, aspect: 0.87 },
   },
   {
     id: "supercar",
     name: "Wedge supercar",
     asset: "wedge-supercar.webp",
-    rearWheel: [12.1, 51.6],
-    frontWheel: [57.5, 69.8],
+    rearWheel: { x: 12.1, y: 51.6, diameter: 14.1, aspect: 0.68 },
+    frontWheel: { x: 57.5, y: 69.8, diameter: 14.7, aspect: 0.82 },
   },
 ];
 
