@@ -18,6 +18,7 @@ const COLORS = [
   "#b7df69",
   "#f5a9d1",
   "#b1dee4",
+  "#dbe4e5",
 ];
 const ROAD_INSET = 34;
 
@@ -259,6 +260,7 @@ export class RaceScene {
           "--paint-hue",
           `${[0, 115, 325, 175, 220, 50, 275, 145][index % COLORS.length] ?? 0}deg`,
         );
+        item.style.setProperty("--paint-saturation", index % COLORS.length === 8 ? "0" : "1");
         item.dataset.own = String(own);
         item.dataset.connected = String(player.connected);
         item.dataset.winner = String(player.id === state.winnerId);

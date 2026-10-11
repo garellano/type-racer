@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { RACE_LANGUAGES } from "./passages";
 
-export const MAX_PLAYERS = 8;
+export const MAX_PLAYERS = 9;
 export const COUNTDOWN_MS = 5000;
 export const RACE_TIMEOUT_MS = 90000;
 export const ROOM_LIFETIME_MS = 2 * 60 * 60 * 1000;

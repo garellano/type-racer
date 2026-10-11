@@ -1,6 +1,6 @@
 # Multiplayer validation
 
-Open the [game](https://garellano.github.io/type-racer/) on desktop browsers with physical keyboards. Start with two people, then test up to eight participants in the US, Ireland, and Mexico.
+Open the [game](https://garellano.github.io/type-racer/) on desktop browsers with physical keyboards. Start with two people, then test up to nine participants in the US, Ireland, and Mexico.
 
 1. Create a room and share its invitation. Everyone uses a distinct name. Check that participants and readiness match on all screens.
    Choose English, Spanish, and Java in separate rounds. Only the host can change the lobby choice; changing it clears ready marks on every screen. Once the countdown begins, the choice is locked. In Java, compare the complete code on both screens and type its spaces, case, and punctuation exactly.
@@ -18,7 +18,7 @@ Product target: most remote changes appear within roughly 300 ms on normal conne
 
 `npm run check` runs strict types, formatting, Cloudflare runtime integration tests, frontend building, and backend packaging. Runtime tests accelerate countdown/deadline timestamps through test-only storage helpers; the public service has no test clock controls.
 
-`npm run smoke -- API_URL FRONTEND_ORIGIN [english|spanish|java]` opens eight real WebSocket clients, confirms a shared language and passage, observes a common future start, waits through the actual countdown, advances cars, finishes concurrently, checks one shared winner and a shared least-progress opening speaker, and resumes a session without redrawing the result. Input is programmatic, so finish durations are not human benchmarks. All sockets close in a finally block; the temporary room expires normally.
+`npm run smoke -- API_URL FRONTEND_ORIGIN [english|spanish|java]` opens nine real WebSocket clients, confirms a shared language and passage, observes a common future start, waits through the actual countdown, advances cars, finishes concurrently, checks one shared winner and a shared least-progress opening speaker, and resumes a session without redrawing the result. Input is programmatic, so finish durations are not human benchmarks. All sockets close in a finally block; the temporary room expires normally.
 
 ## Race scene validation
 
@@ -27,6 +27,6 @@ Product target: most remote changes appear within roughly 300 ms on normal conne
 3. Separate racers by more than 50 m in both directions. The main view shows direction/distance indicators; the radar and standings still include all participants.
 4. Stop typing, introduce a typo, and delete correct characters. Cars settle at their targets, errors do not add distance, brake lights respond, and deleting all text returns the car to zero without a later snapshot restoring the deleted input.
 5. Use **Reduce motion**, and separately load with a browser reduced-motion preference. Positions update without smoothing or decorative animation. Hide and reopen the tab; the camera returns to current positions without replaying old movement.
-6. Finish, compare the same winner everywhere, and reset. Check that the result celebration runs briefly, then stops, and that the next countdown starts from the grid. Try eight racers and a narrow viewport; names remain available in standings.
+6. Finish, compare the same winner everywhere, and reset. Check that the result celebration runs briefly, then stops, and that the next countdown starts from the grid. Try nine racers and a narrow viewport; names remain available in standings.
 
 Camera bounds, radar clipping, frame-rate-independent damping, corrections, and shared timer formatting have automated tests. Browser validation covers the actual scene; it does not establish cross-region latency or guarantee a particular frame rate. Deploy backend changes between races because deployments disconnect sockets.

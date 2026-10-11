@@ -2,7 +2,7 @@
 
 ## Product scope
 
-Type Racer is a short multiplayer typing race for 2–8 standup participants. Preserve synchronized starts, shared progress, reconnection, and one authoritative winner while developing the arcade race scene, personal camera, and full-field minimap. Celebrate the winner, then show final standings and warmly invite the last race position to open standup.
+Type Racer is a short multiplayer typing race for 2–9 standup participants. Preserve synchronized starts, shared progress, reconnection, and one authoritative winner while developing the arcade race scene, personal camera, and full-field minimap. Celebrate the winner, then show final standings and warmly invite the last race position to open standup.
 
 ## Language and design
 

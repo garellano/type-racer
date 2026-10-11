@@ -5,6 +5,7 @@ import {
   admissionSchema,
   correctPrefix,
   languageSchema,
+  MAX_PLAYERS,
   rankPlayers,
   roomIdSchema,
   sessionSchema,
@@ -214,7 +215,7 @@ function renderState(): void {
   const rank =
     rankPlayers(state.players).findIndex((player) => player.id === session?.playerId) + 1;
   element<HTMLElement>("#race-position").textContent = lobby
-    ? `${state.players.length} / 8 racers`
+    ? `${state.players.length} / ${MAX_PLAYERS} racers`
     : `#${rank} / ${state.players.length}`;
   element<HTMLElement>("#room-title").textContent = lobby
     ? "The team is lining up."

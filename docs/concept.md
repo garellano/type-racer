@@ -4,7 +4,7 @@ Type Racer turns the choice of the first standup speaker into a short typing com
 
 ## Agreed direction
 
-- 2–8 participants join by invitation without accounts.
+- 2–9 participants join by invitation without accounts.
 - A fixed finish line: completing the shared text first wins.
 - Approximately 45–60 seconds per round, tuned with the team.
 - A selectable language for each race: English, Spanish, or Java.

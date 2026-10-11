@@ -11,6 +11,7 @@ import { z } from "zod";
 import { PASSAGES, RACE_LANGUAGES } from "../shared/passages";
 import {
   admissionSchema,
+  MAX_PLAYERS,
   serverMessageSchema,
   type Admission,
   type ClientMessage,
@@ -160,8 +161,8 @@ afterEach(async () => {
 });
 
 describe("authoritative multiplayer races", () => {
-  it("gives eight Java racers the same start and exactly one durable winner for concurrent finishes", async () => {
-    const { admissions, probes, roomId } = await room(8);
+  it("gives nine Java racers the same start and exactly one durable winner for concurrent finishes", async () => {
+    const { admissions, probes, roomId } = await room(9);
     probes[0]?.send({ type: "configure", language: "java" });
     await Promise.all(probes.map((probe) => probe.snapshot((state) => state.language === "java")));
     const starts = await countdown(probes);
@@ -205,7 +206,7 @@ describe("authoritative multiplayer races", () => {
     expect(new Set(results.map((state) => state.standupStarterId)).size).toBe(1);
     expect(results[0]?.standupStarterId).not.toBeNull();
     expect(results[0]?.standupStarterId).not.toBe(results[0]?.winnerId);
-    expect(results.every((state) => state.standupTieCount === 7)).toBe(true);
+    expect(results.every((state) => state.standupTieCount === probes.length - 1)).toBe(true);
     expect(results.every((state) => state.outcome === "completed")).toBe(true);
     expect(
       results[0]?.players.filter((player) => player.progress === start.passage.length),
@@ -215,7 +216,7 @@ describe("authoritative multiplayer races", () => {
     const persisted = await restored.snapshot((state) => state.phase === "finished");
     expect(persisted.winnerId).toBe(results[0]?.winnerId);
     expect(persisted.standupStarterId).toBe(results[0]?.standupStarterId);
-    expect(persisted.standupTieCount).toBe(7);
+    expect(persisted.standupTieCount).toBe(probes.length - 1);
     expect(persisted.language).toBe("java");
     expect(persisted.passage).toBe(start.passage);
     for (const probe of probes) {
@@ -349,8 +350,12 @@ describe("authoritative multiplayer races", () => {
   });
 
   it("enforces capacity, host control, session authentication, and request boundaries", async () => {
-    const { admissions, probes, roomId } = await room(8);
-    expect((await request(`/rooms/${roomId}/join`, { name: "Ninth" })).status).toBe(409);
+    const { admissions, probes, roomId } = await room(MAX_PLAYERS);
+    const overflow = await request(`/rooms/${roomId}/join`, { name: "Tenth" });
+    expect(overflow.status).toBe(409);
+    expect(await overflow.json()).toMatchObject({
+      error: `This room is full (${MAX_PLAYERS} racers maximum).`,
+    });
     expect(
       (
         await request(`/rooms/${roomId}/join`, {

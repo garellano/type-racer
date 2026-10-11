@@ -187,7 +187,7 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
     if (state.phase !== "lobby")
       throw new RoomError(409, "The race has already started. Join after the host resets it.");
     if (state.players.length >= MAX_PLAYERS)
-      throw new RoomError(409, "This room is full (8 racers maximum).");
+      throw new RoomError(409, `This room is full (${MAX_PLAYERS} racers maximum).`);
     state.players.push({
       id: session.playerId,
       name,

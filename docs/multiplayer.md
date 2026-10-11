@@ -26,7 +26,7 @@ The bounded state also saves the daily passage key and up to three recent choice
 8. `ping` / `pong` estimate clock offset and round-trip latency. Versioned snapshots include a server timestamp; older versions are discarded.
 9. Resume returns current state and sequence. A second connection for a session replaces the first, preventing duplicate racers.
 
-Shared runtime schemas live in `shared/protocol.ts`. Limits: 2 KiB WebSocket input, 1 KiB HTTP JSON, 24-character names, 500-character race input, eight racers, sixteen sockets. Session credentials travel in JSON and the first WebSocket message, never invitation URLs. Public snapshots omit secrets and hashes.
+Shared runtime schemas live in `shared/protocol.ts`. Limits: 2 KiB WebSocket input, 1 KiB HTTP JSON, 24-character names, 500-character race input, nine racers, eighteen sockets. Session credentials travel in JSON and the first WebSocket message, never invitation URLs. Public snapshots omit secrets and hashes.
 
 ## Clock and fairness
 
@@ -38,7 +38,7 @@ Clock estimates cannot eliminate asymmetric Internet routes. The first valid fin
 
 One alarm handles countdown, deadline, or expiry. Rooms expire two hours after creation; sockets close and stored data is deleted. Broadcast timers exist only while updates await delivery. There is no permanent backend game loop.
 
-At eight racers and ten updates per second, a 60-second race produces up to roughly 4,800 progress messages and 4,800 progress-row writes, plus lifecycle work. Batched snapshots produce up to 4,800 client deliveries. Outgoing WebSocket messages have no Durable Object request charge. Incoming message billing uses Cloudflare's documented conversion; messages are not equivalent to billed requests.
+At nine racers and ten updates per second, a 60-second race produces up to roughly 5,400 progress messages and 5,400 progress-row writes, plus lifecycle work. Batched snapshots produce up to 5,400 client deliveries. Outgoing WebSocket messages have no Durable Object request charge. Incoming message billing uses Cloudflare's documented conversion; messages are not equivalent to billed requests.
 
 Free supports SQLite Durable Objects. Its documented allocation includes 100,000 requests/day, 13,000 GB-s/day, 100,000 rows written/day, and 5 GB stored. Quotas are account-wide; excess Free operations fail rather than automatically upgrading billing. These are estimates, not measured usage or a spending guarantee.
 

@@ -2,7 +2,7 @@
 
 The production sprite is `public/assets/arcade-coupe.png`, an original transparent 1774 × 887 PNG generated with the built-in imagegen tool. TypeRush screenshots informed the elevated side perspective and readable racing silhouette. No TypeRush artwork, manufacturer logo, or Contrast Security brand asset was copied.
 
-The generated alpha is preserved. All cars reuse this one cached image; CSS hue rotation supplies distinct paint colors, and small CSS overlays animate rims, headlights, and brake lights. The scene scales the asset for two to eight lanes. The source PNG is approximately 1.6 MB, fetched once and reused across the field; it adds no runtime image-generation dependency or service cost.
+The generated alpha is preserved. All cars reuse this one cached image; CSS hue rotation supplies distinct paint colors, and small CSS overlays animate rims, headlights, and brake lights. The scene scales the asset for two to nine lanes. The source PNG is approximately 1.6 MB, fetched once and reused across the field; it adds no runtime image-generation dependency or service cost.
 
 ## Final generation prompt
 

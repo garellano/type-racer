@@ -7,6 +7,7 @@ const origin = process.argv[3] || "http://127.0.0.1:5173";
 const language = process.argv[4] || "english";
 assert(["english", "spanish", "java"].includes(language), "Choose english, spanish, or java.");
 const sockets = [];
+const racerCount = 9;
 
 async function post(path, body) {
   const response = await fetch(new URL(path, api), {
@@ -66,7 +67,7 @@ async function connect(admission) {
 try {
   const host = await post("/rooms", { name: "Smoke Host" });
   const admissions = [host];
-  for (let index = 1; index < 8; index++)
+  for (let index = 1; index < racerCount; index++)
     admissions.push(await post(`/rooms/${host.roomId}/join`, { name: `Smoke Racer ${index + 1}` }));
   const clients = [];
   for (const admission of admissions) clients.push(await connect(admission));
@@ -137,7 +138,7 @@ try {
     JSON.stringify(
       {
         status: "passed",
-        clients: 8,
+        clients: clients.length,
         language,
         sharedStart: new Date(start.startAt).toISOString(),
         sharedWinner: true,
