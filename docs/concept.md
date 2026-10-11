@@ -13,7 +13,7 @@ Type Racer turns the choice of the first standup speaker into a short typing com
 
 ## Current milestone
 
-Prove a shared start time, valid progress, one consistent result, and session recovery before adding rich animation. This version uses a five-second countdown, original English and Spanish passages or small Java classes, and a simple full-track view. Sentence-by-sentence presentation is deferred.
+This version combines the validated multiplayer core with an original top-down circuit: a five-second countdown, personal scrolling camera, full-field radar, starting lights, and a brief finish celebration. It uses original English and Spanish passages or small Java classes. Sentence-by-sentence presentation is deferred.
 
 The host chooses the language in the lobby. Changing it clears readiness. The server selects one passage for all racers and locks the language during the round. Java challenges use familiar racing and standup ideas: advancing a car, finding a winner, counting ready racers, and choosing the next speaker. See [passage design](passages.md).
 
@@ -23,12 +23,12 @@ The host participates and starts only when at least two racers are connected and
 
 The host can reset after a result. Disconnected guests are removed at reset. Host transfer and spectator mode are deferred. A missing host can restore their original tab session.
 
-## Later visual milestone
+## Race presentation
 
-Use toy cars viewed from above and a camera following the local racer, initially showing about 50 meters behind and ahead. A minimap shows the entire field, with edge indicators for opponents outside the camera window. Keep lanes stable when rankings change.
+Toy cars face right in stable lanes. The camera follows the local racer's front bumper and shows exactly 50 meters behind and ahead. It includes pre-grid and post-finish space at track boundaries. A minimap shows the entire field and the clipped camera window, with edge indicators for opponents outside the main view. Rankings use confirmed server positions.
 
-Design grid entry, readiness, starting lights, acceleration, overtaking, mistakes, sentence changes, finish approach, flag, and celebration. Effects express progress without random advantages. Add optional sound and reduced motion.
+Starting lights reflect the estimated server clock. Movement adds a small chassis and tire effect, mistakes illuminate brake lights, confirmed overtakes show a short notice, and the final shared result shows a flag and brief confetti. Effects express progress without random advantages. Reduced motion uses immediate positions and removes decorations.
 
-The local car responds immediately to typing. Remote cars interpolate between confirmed positions without extrapolating progress during disconnection. The server determines the winner. Aim for 60 frames per second where devices support it.
+The local car responds to the current correct prefix. Time-based damping brings remote cars toward confirmed positions without overshooting or continuing beyond received progress. Both advance and deletion animate. Frame requests stop once positions settle, and hidden pages and disconnected sessions settle without drifting. The server determines the winner. Rendering uses the browser's animation frame schedule; device performance is not guaranteed.
 
-After multiplayer validation, choose configurable lengths, sentence presentation, car selection, spectator mode, and the visual style. Tune passage length using the actual team; punctuation can make Java slower than prose of the same length.
+Later work includes configurable lengths, sentence presentation, car selection, optional sound, and spectator mode. Tune passage length using the actual team; punctuation can make Java slower than prose of the same length.

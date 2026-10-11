@@ -253,7 +253,7 @@ label {
 }
 .race-layout {
   display: grid;
-  grid-template-columns: 1.08fr 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
   align-items: start;
 }
@@ -282,85 +282,6 @@ label {
 .panel-heading > span {
   font-size: 11px;
   color: #65775d;
-}
-.track-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9px;
-  letter-spacing: 1px;
-  font-weight: 700;
-  margin: 12px 0;
-  color: #6d7b60;
-}
-.lane {
-  position: relative;
-  padding: 9px 0 10px;
-  border-top: 1px solid #cfd7c1;
-}
-.racer {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 11px;
-  margin-bottom: 3px;
-}
-.racer-name {
-  font-weight: 600;
-}
-.racer-status {
-  font-size: 10px;
-  color: #7b876d;
-}
-.lane-road {
-  position: relative;
-  height: 28px;
-  margin-right: 40px;
-  background: repeating-linear-gradient(
-      to right,
-      #bac5aa 0,
-      #bac5aa 8px,
-      transparent 8px,
-      transparent 16px
-    )
-    center / 100% 1px no-repeat;
-}
-.lane-road::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 0;
-  height: 28px;
-  width: 6px;
-  background: repeating-linear-gradient(#42563d 0, #42563d 4px, #e9edde 4px, #e9edde 8px);
-  opacity: 0.6;
-}
-.car {
-  position: absolute;
-  top: 4px;
-  width: 42px;
-  height: 20px;
-  color: var(--car-color);
-  z-index: 1;
-}
-.car svg {
-  width: 100%;
-  height: 100%;
-}
-.lane[data-own="true"] .racer-name {
-  color: #386942;
-}
-.distance {
-  position: absolute;
-  right: 0;
-  bottom: 20px;
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  color: #6e7b62;
-}
-.track-note {
-  font-size: 10px;
-  color: #6c7b61;
-  margin: 14px 0 0;
 }
 .typing-panel #race-help {
   font-size: 12px;

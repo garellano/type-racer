@@ -2,7 +2,7 @@
 
 ## Product scope
 
-Type Racer is a short multiplayer typing race for 2–8 standup participants. The current milestone proves synchronized starts, shared car progress, reconnection, and one authoritative winner. Keep visual effects simple until multiplayer validation is complete.
+Type Racer is a short multiplayer typing race for 2–8 standup participants. Preserve synchronized starts, shared progress, reconnection, and one authoritative winner while developing the top-down race scene, personal camera, and full-field minimap.
 
 ## Language and design
 
@@ -23,6 +23,15 @@ Type Racer is a short multiplayer typing race for 2–8 standup participants. Th
 - Use hibernating WebSockets and bounded messages. Stop timers when no work remains; expire rooms and close their sockets.
 - Preserve durable state and connection attachments across hibernation. Reconnection must recover the same player and result.
 - A countdown is scheduled using the server clock; network arrivals do not individually start each client.
+
+## Rendering
+
+- Derive distance from valid characters. The personal camera shows exactly 50 meters behind and ahead, including space outside the start and finish lines.
+- Keep lanes stable while ranks change. Show every racer in the radar and indicate opponents outside the personal camera.
+- Use time-based requestAnimationFrame motion toward known positions. Never extrapolate remote progress or let animation decide the winner.
+- Avoid layout reads in animation loops. Stop frame requests when positions settle, pause in hidden documents, and release observers and listeners on exit.
+- Honor reduced-motion preferences and provide an explicit toggle. Freeze disconnected racers; decorative effects must not suggest continued progress.
+- Use original vector artwork and insert all player-provided text with textContent.
 
 ## Security and cost
 

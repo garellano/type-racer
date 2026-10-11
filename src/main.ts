@@ -1,4 +1,5 @@
 import "./style.css";
+import "./race-scene.css";
 import { LANGUAGE_LABELS } from "../shared/passages";
 import {
   admissionSchema,
@@ -7,12 +8,12 @@ import {
   rankPlayers,
   roomIdSchema,
   sessionSchema,
-  TRACK_METERS,
   UPDATE_INTERVAL_MS,
   type Session,
   type Snapshot,
 } from "../shared/protocol";
 import { RaceConnection } from "./connection";
+import { RaceScene } from "./race-scene";
 
 function element<E extends HTMLElement>(selector: string): E {
   const result = document.querySelector<E>(selector);
@@ -30,14 +31,10 @@ const startButton = element<HTMLButtonElement>("#start");
 const resetButton = element<HTMLButtonElement>("#reset");
 const leaveButton = element<HTMLButtonElement>("#leave");
 const languageSelect = element<HTMLSelectElement>("#language");
-const lanes = element<HTMLElement>("#lanes");
+const scene = new RaceScene(element<HTMLElement>(".track-panel"));
 const passage = element<HTMLElement>("#passage");
 const requestedRoom = new URLSearchParams(location.hash.slice(1)).get("room");
 const roomId = roomIdSchema.safeParse(requestedRoom);
-const laneElements = new Map<
-  string,
-  { car: HTMLElement; name: HTMLElement; distance: HTMLElement; status: HTMLElement }
->();
 let connection: RaceConnection | undefined;
 let session: Session | undefined;
 let state: Snapshot | undefined;
@@ -170,30 +167,29 @@ function receiveState(next: Snapshot): void {
     showError("Your seat is no longer in this room. Reload to join again.");
     return;
   }
-  if (next.raceId !== previousRace) {
+  const newRace = next.raceId !== previousRace;
+  if (newRace) {
     previousRace = next.raceId;
     input.value = "";
     lastSentText = "";
     sequence = 0;
     focusedRace = null;
+    window.scrollTo({ top: 0, behavior: "instant" });
     if (progressTimer !== undefined) clearTimeout(progressTimer);
     progressTimer = undefined;
   }
   sequence = Math.max(sequence, own.sequence);
-  if (!input.value && own.progress > 0 && next.phase !== "lobby")
+  // Restore once on entry to a round. Later snapshots must not undo a user's deletion.
+  if (newRace && own.progress > 0 && next.phase !== "lobby")
     input.value = next.passage.slice(0, own.progress);
   if (next.phase === "racing" && input.value !== lastSentText) sendProgress();
   renderState();
   renderTyping();
 }
 
-const carMarkup =
-  '<svg viewBox="0 0 72 34" aria-hidden="true"><rect x="12" y="0" width="12" height="7" rx="2" fill="#112a27"/><rect x="12" y="27" width="12" height="7" rx="2" fill="#112a27"/><rect x="48" y="0" width="12" height="7" rx="2" fill="#112a27"/><rect x="48" y="27" width="12" height="7" rx="2" fill="#112a27"/><path d="M8 5h48q13 0 13 12T56 29H8q-5 0-5-12T8 5" fill="currentColor"/><rect x="29" y="8" width="18" height="18" rx="5" fill="#f4f6e8"/><path d="M46 10v14M12 10v14" stroke="#112a27" stroke-width="3"/><rect x="62" y="8" width="4" height="5" rx="1" fill="#fff4b3"/><rect x="62" y="21" width="4" height="5" rx="1" fill="#fff4b3"/></svg>';
-
 function renderState(): void {
   if (!state || !session) return;
-  const current = state;
-  const ownSession = session;
+  game.dataset.phase = state.phase;
   const own = state.players.find((player) => player.id === session?.playerId);
   const host = state.hostId === session.playerId;
   const lobby = state.phase === "lobby";
@@ -218,7 +214,7 @@ function renderState(): void {
     rankPlayers(state.players).findIndex((player) => player.id === session?.playerId) + 1;
   element<HTMLElement>("#race-position").textContent = lobby
     ? `${state.players.length} / 8 racers`
-    : `Position ${rank} / ${state.players.length}`;
+    : `#${rank} / ${state.players.length}`;
   element<HTMLElement>("#room-title").textContent = lobby
     ? "The team is lining up."
     : state.phase === "finished"
@@ -234,61 +230,8 @@ function renderState(): void {
     : state.language === "java"
       ? "Copy the code exactly, including spaces, case, and punctuation. No coding solution needed."
       : "Type the same text as your teammates. Correct mistakes to keep moving.";
-  const ids = new Set(state.players.map((player) => player.id));
-  for (const [id, parts] of laneElements) {
-    if (!ids.has(id)) {
-      parts.car.closest(".lane")?.remove();
-      laneElements.delete(id);
-    }
-  }
-  state.players.forEach((player, index) => {
-    let parts = laneElements.get(player.id);
-    if (!parts) {
-      const lane = document.createElement("div");
-      lane.className = "lane";
-      lane.innerHTML =
-        '<div class="racer"><span class="racer-name"></span><span class="racer-status"></span></div><div class="lane-road"><div class="car">' +
-        carMarkup +
-        '</div></div><span class="distance"></span>';
-      lanes.append(lane);
-      const car = lane.querySelector<HTMLElement>(".car");
-      const name = lane.querySelector<HTMLElement>(".racer-name");
-      const distance = lane.querySelector<HTMLElement>(".distance");
-      const status = lane.querySelector<HTMLElement>(".racer-status");
-      if (!car || !name || !distance || !status) throw new Error("Invalid lane template.");
-      parts = { car, name, distance, status };
-      laneElements.set(player.id, parts);
-    }
-    const lane = parts.car.closest<HTMLElement>(".lane");
-    lane?.style.setProperty(
-      "--car-color",
-      ["#f7c948", "#84c7b1", "#e99e85", "#92b5e5", "#c7a0d9", "#b8ce71", "#eaafd0", "#91cbd4"][
-        index
-      ] ?? "#f7c948",
-    );
-    if (lane) lane.dataset.own = String(player.id === session?.playerId);
-    parts.name.textContent = `${player.name}${player.id === ownSession.playerId ? " (you)" : ""}`;
-    parts.status.textContent = !player.connected
-      ? "Disconnected"
-      : lobby
-        ? player.ready
-          ? "Ready ✓"
-          : "Getting ready"
-        : current.winnerId === player.id
-          ? "Winner ★"
-          : current.phase === "finished"
-            ? "Stopped"
-            : current.phase === "countdown"
-              ? "At the grid"
-              : "Racing";
-    const localProgress =
-      player.id === ownSession.playerId && input.value && current.phase !== "finished"
-        ? correctPrefix(input.value, current.passage)
-        : player.progress;
-    const fraction = current.passage.length ? localProgress / current.passage.length : 0;
-    parts.car.style.left = `calc(${fraction * 100}% - ${fraction * 42}px)`;
-    parts.distance.textContent = `${Math.round(fraction * TRACK_METERS)} m`;
-  });
+  const prefix = correctPrefix(input.value, state.passage);
+  scene.update(state, session.playerId, prefix, input.value.length > prefix);
   element<HTMLElement>("#result").hidden = state.phase !== "finished";
   if (state.phase === "finished") {
     const winner = state.players.find((player) => player.id === state?.winnerId);
@@ -364,11 +307,12 @@ input.addEventListener("drop", (event) => event.preventDefault());
 function updateClock(): void {
   if (!connection || !state) return;
   const now = connection.now();
+  scene.tick(now, connection.status === "connected", connection.clockReady);
   const racing = state.startAt !== null && now >= state.startAt && state.phase !== "finished";
   input.disabled = !racing || connection.status !== "connected" || !connection.clockReady;
   if (racing && !input.disabled && focusedRace !== state.raceId) {
     focusedRace = state.raceId;
-    input.focus();
+    input.focus({ preventScroll: true });
   }
   readyButton.disabled = connection.status !== "connected";
   languageSelect.disabled =
@@ -397,6 +341,7 @@ window.addEventListener("pagehide", () => {
   clearInterval(clockTimer);
   if (progressTimer !== undefined) clearTimeout(progressTimer);
   connection?.close();
+  scene.destroy();
 });
 
 if (roomId.success) {

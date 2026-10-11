@@ -4,13 +4,15 @@ A short multiplayer typing race to choose who starts the daily standup.
 
 **[Play Type Racer](https://garellano.github.io/type-racer/)** · [Product concept](docs/concept.md) · [Multiplayer design](docs/multiplayer.md) · [Validation guide](docs/validation.md)
 
-## Multiplayer prototype
+## The standup circuit
 
 Create a room, copy its invitation link, and invite 2–8 teammates. The host chooses **English**, **Spanish**, or **Java** in the lobby. Everyone marks ready before the host starts a shared five-second countdown. Correctly typed characters advance the cars. The server confirms one winner, who starts the standup. Reset after a result to race again; the host can keep or change the language.
 
 Changing the language clears everyone's readiness. Each round gives every racer the same randomly selected passage. Java uses original small classes with simple methods, loops, conditions, and reserved words. Copy the code exactly; solving or executing it is not required. Read [the passage design](docs/passages.md).
 
-This milestone tests real multiplayer with simple car graphics. Rich animation, a scrolling camera, a minimap, and car selection are future milestones. Interface copy and project documentation are in English; gameplay text follows the chosen language.
+The race uses original top-down toy cars with stable lanes. Your camera follows your car with exactly **50 meters behind and 50 meters ahead**. Opponents outside that view have direction and distance indicators; the race radar shows everyone across all 300 meters and highlights your camera window. Starting lights follow the shared countdown, correct typing moves the car, mistakes light the brakes, and the server-confirmed result triggers a short flag celebration. The HUD shows confirmed rank, average WPM, and elapsed race time.
+
+Motion approaches known positions without predicting extra progress. It pauses when positions settle or the page is hidden. **Reduce motion** switches to immediate positions and removes decorative animation; the initial setting follows the browser preference. Interface copy and project documentation are in English; gameplay text follows the chosen language. Car selection, sound, and sentence-by-sentence presentation are future work.
 
 - Frontend: vanilla TypeScript and Vite, hosted on GitHub Pages.
 - Coordination: Cloudflare Worker, one SQLite-backed Durable Object per room, and secure hibernating WebSockets.

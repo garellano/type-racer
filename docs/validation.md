@@ -20,4 +20,13 @@ Product target: most remote changes appear within roughly 300 ms on normal conne
 
 `npm run smoke -- API_URL FRONTEND_ORIGIN [english|spanish|java]` opens eight real WebSocket clients, confirms a shared language and passage, observes a common future start, waits through the actual countdown, advances cars, finishes concurrently, checks one shared result, and resumes a session. Input is programmatic, so finish durations are not human benchmarks. All sockets close in a finally block; the temporary room expires normally.
 
-Accept the milestone after the team's screens show a common start, useful remote progress, one consistent winner, and session recovery. Then proceed to motion, the personal camera, minimap, starting lights, and celebration. Deploy backend changes between races because deployments disconnect sockets.
+## Race scene validation
+
+1. During the countdown, compare the red/amber/green lights and shared start on two screens. Typing remains disabled until the estimated server start.
+2. Advance one racer halfway. Their front bumper stays at the horizontal center; **Your view** reads approximately 100–200 m. Other racers keep their lanes when ranks change.
+3. Separate racers by more than 50 m in both directions. The main view shows direction/distance indicators; the radar and standings still include all participants.
+4. Stop typing, introduce a typo, and delete correct characters. Cars settle at their targets, errors do not add distance, brake lights respond, and deleting all text returns the car to zero without a later snapshot restoring the deleted input.
+5. Use **Reduce motion**, and separately load with a browser reduced-motion preference. Positions update without smoothing or decorative animation. Hide and reopen the tab; the camera returns to current positions without replaying old movement.
+6. Finish, compare the same winner everywhere, and reset. Check that the result celebration runs briefly, then stops, and that the next countdown starts from the grid. Try eight racers and a narrow viewport; names remain available in standings.
+
+Camera bounds, radar clipping, frame-rate-independent damping, corrections, and shared timer formatting have automated tests. Browser validation covers the actual scene; it does not establish cross-region latency or guarantee a particular frame rate. Deploy backend changes between races because deployments disconnect sockets.

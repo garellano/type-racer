@@ -14,7 +14,7 @@
     <main class="app">
       <header class="masthead">
         <a class="brand" href="#">TYPE<span>RACER</span><span class="brand-mark">↗</span></a
-        ><span class="prototype">Multiplayer test · v0.1</span>
+        ><span class="prototype">The standup circuit · v0.2</span>
       </header>
       <section id="entry" class="entry">
         <p class="eyebrow">A little competition. A better morning.</p>
@@ -82,13 +82,70 @@
         </div>
         <div class="race-layout">
           <section class="track-panel" aria-label="Live race positions">
-            <div class="panel-heading">
-              <h2>The track</h2>
-              <span id="race-position">Waiting for racers</span>
+            <div class="track-heading">
+              <div class="circuit-name">
+                <span class="circuit-icon" aria-hidden="true">▦</span>
+                <div>
+                  <p class="eyebrow">The standup circuit</p>
+                  <h2>Morning sprint</h2>
+                </div>
+              </div>
+              <div class="race-hud">
+                <div class="hud-stat">
+                  <span>Position</span><strong id="race-position">At the grid</strong>
+                </div>
+                <div class="hud-stat"><span>WPM · avg</span><strong id="wpm">0</strong></div>
+                <div class="hud-stat">
+                  <span>Race time</span><strong id="elapsed">0:00.0</strong>
+                </div>
+                <button id="motion-toggle" class="motion-toggle" type="button" aria-pressed="false">
+                  Reduce motion
+                </button>
+              </div>
             </div>
-            <div class="track-labels"><span>START</span><span>300 M · FINISH ▦</span></div>
-            <div id="lanes"></div>
-            <p class="track-note">Cars move with correctly typed characters.</p>
+            <div id="race-viewport" class="race-viewport" aria-hidden="true">
+              <div class="trackside top-trackside"></div>
+              <div class="trackside bottom-trackside"></div>
+              <div class="road-surface"></div>
+              <div id="track-world" class="track-world">
+                <div class="grid-paving"></div>
+                <div class="track-line start-line"><span>START</span></div>
+                <div class="track-line finish-line"><span>FINISH ▦</span></div>
+              </div>
+              <div id="lanes"></div>
+              <div id="offscreen-racers"></div>
+              <div id="race-signal" class="race-signal" data-visible="true" data-light="red">
+                <div class="starting-lights"><i></i><i></i><i></i></div>
+                <span id="signal-text">Ready when you are</span>
+              </div>
+              <div id="race-toast" class="race-toast" data-visible="false"></div>
+              <div class="finish-overlay">
+                <span class="finish-flag">▦</span><strong id="scene-verdict"></strong
+                ><span class="finish-subtitle">One race. One shared result.</span>
+                <div class="confetti">
+                  <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+                  ><i></i>
+                </div>
+              </div>
+            </div>
+            <div class="race-radar">
+              <div class="radar-heading">
+                <h3>Race radar <span>All 300 meters</span></h3>
+                <p>
+                  Your view <strong id="camera-range">-50–50 m</strong
+                  ><span>50 m behind · 50 m ahead</span>
+                </p>
+              </div>
+              <div class="minimap" aria-hidden="true">
+                <span class="mini-start">S</span>
+                <div class="mini-road">
+                  <div id="mini-window" class="mini-window"></div>
+                  <div id="mini-dots"></div>
+                </div>
+                <span class="mini-finish">▦</span>
+              </div>
+              <ol id="standings" class="standings" aria-label="Race standings"></ol>
+            </div>
           </section>
           <section class="typing-panel" aria-label="Typing challenge">
             <div class="panel-heading">
@@ -103,7 +160,7 @@
             <textarea
               id="typing"
               disabled
-              rows="4"
+              rows="2"
               spellcheck="false"
               autocomplete="off"
               autocapitalize="off"
