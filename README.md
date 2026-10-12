@@ -4,6 +4,12 @@ A short multiplayer typing race to choose who starts the daily standup.
 
 **[Play Type Racer](https://garellano.github.io/type-racer/)** · [Product concept](docs/concept.md) · [Multiplayer design](docs/multiplayer.md) · [Validation guide](docs/validation.md)
 
+## Defuse the bomb
+
+Choose **Defuse the bomb** for a shared game of chance with **2–25 teammates**. Wires begin tangled inside the bomb and extend to each player's name when selected. The server assigns missing choices after 20 seconds, runs a synchronized countdown, cuts wires one at a time, then reveals one randomly chosen opening speaker with a cartoon BOOM. Every person has the same chance, whatever color or selection order they choose. A round takes 32–52 seconds after the host starts. Reconnection preserves choices, revealed cuts, and the final result.
+
+The game reuses the existing rooms, invitations, sessions, and Worker. Typing games still support 2–9 racers. Read [bomb rules, architecture, and validation](docs/bomb.md), including [visual evidence](docs/evidence/bomb/).
+
 ## The standup circuit
 
 Create a room, copy its invitation link, and invite 2–9 teammates. The host chooses **Race cars** or **Jump with sacks**, plus **English**, **Spanish**, or **Java**, in the lobby. Everyone marks ready before the host starts a shared five-second countdown. Correctly typed characters advance the racers. Celebrate the server-confirmed winner, then see the final standings: **the last race position opens standup**. The invitation is positive: “The opening lap is yours.” Reset after a result to race again; the host can keep or change the mode and language.
@@ -50,6 +56,7 @@ npm run check          # Types, formatting, Workers tests, and both builds
 npm run smoke -- http://127.0.0.1:8787 http://127.0.0.1:5173
 npm run smoke -- http://127.0.0.1:8787 http://127.0.0.1:5173 java
 npm run smoke -- http://127.0.0.1:8787 http://127.0.0.1:5173 spanish sacks
+npm run smoke:bomb -- http://127.0.0.1:8787 http://127.0.0.1:5173 25
 ```
 
 ## Deployment

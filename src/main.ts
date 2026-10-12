@@ -1,6 +1,7 @@
 import "./style.css";
 import "./race-scene.css";
 import "./sack-scene.css";
+import "./bomb-scene.css";
 import { LANGUAGE_LABELS } from "../shared/passages";
 import { chooseCharacter, type CharacterId } from "../shared/characters";
 import { CharacterPicker } from "./character-picker";
@@ -9,7 +10,7 @@ import {
   correctPrefix,
   languageSchema,
   gameModeSchema,
-  MAX_PLAYERS,
+  playerCapacity,
   rankPlayers,
   roomIdSchema,
   sessionSchema,
@@ -21,6 +22,7 @@ import {
 import { RaceConnection } from "./connection";
 import { RaceScene } from "./race-scene";
 import { renderResults } from "./results";
+import { BombScene } from "./bomb-scene";
 
 function element<E extends HTMLElement>(selector: string): E {
   const result = document.querySelector<E>(selector);
@@ -63,6 +65,10 @@ element<HTMLInputElement>("#name").addEventListener("input", (event) => {
   entryPicker.render(entryCharacter, true);
 });
 const scene = new RaceScene(element<HTMLElement>(".track-panel"));
+const bombScene = new BombScene(element("#bomb-panel"), (cableId) => {
+  clearError();
+  return !!state?.raceId && !!connection?.send({ type: "wire", raceId: state.raceId, cableId });
+});
 const passage = element<HTMLElement>("#passage");
 const requestedRoom = new URLSearchParams(location.hash.slice(1)).get("room");
 const roomId = roomIdSchema.safeParse(requestedRoom);
@@ -76,6 +82,7 @@ let lastSentText = "";
 let focusedRace: string | null = null;
 
 function showError(message: string): void {
+  bombScene.reject(message);
   errorLabel.textContent = message;
   errorLabel.hidden = false;
 }
@@ -88,9 +95,9 @@ if (requestedRoom && !roomId.success)
   showError("That room link is invalid. Create a new room below.");
 if (roomId.success) {
   element("#entry-mode").hidden = true;
-  element<HTMLButtonElement>("#enter").textContent = "Join the race ↗";
+  element<HTMLButtonElement>("#enter").textContent = "Join the team ↗";
   element<HTMLElement>(".intro").textContent =
-    "Your team has a lane waiting for you. Choose a name and join the starting grid.";
+    "Your team has a place waiting for you. Choose a name and join today's game.";
 }
 
 async function enterRoom(
@@ -226,7 +233,8 @@ function receiveState(next: Snapshot): void {
   // Restore once on entry to a round. Later snapshots must not undo a user's deletion.
   if (newRace && own.progress > 0 && next.phase !== "lobby")
     input.value = next.passage.slice(0, own.progress);
-  if (next.phase === "racing" && input.value !== lastSentText) sendProgress();
+  if (next.mode !== "bomb" && next.phase === "racing" && input.value !== lastSentText)
+    sendProgress();
   renderState();
   renderTyping();
 }
@@ -238,6 +246,8 @@ function renderState(): void {
   const own = state.players.find((player) => player.id === session?.playerId);
   const host = state.hostId === session.playerId;
   const lobby = state.phase === "lobby";
+  const bomb = state.mode === "bomb";
+  element("#bomb-panel").hidden = !bomb;
   languageSelect.value = state.language;
   modeSelect.value = state.mode;
   modeSelect.disabled = !host || !lobby || connection?.status !== "connected";
@@ -262,22 +272,33 @@ function renderState(): void {
   input.classList.toggle("code-passage", state.language === "java");
   passage.lang = state.language === "spanish" ? "es" : "en";
   input.lang = passage.lang;
-  readyButton.hidden = !lobby;
+  readyButton.hidden = !lobby || bomb;
   readyButton.textContent = own?.ready ? "Ready ✓" : "I'm ready";
   readyButton.dataset.ready = String(own?.ready ?? false);
   startButton.hidden = !host || !lobby;
   resetButton.hidden = !host || state.phase !== "finished";
   leaveButton.hidden = host || !lobby;
+  startButton.textContent = bomb ? "Start suspense ↗" : "Start race ↗";
+  resetButton.textContent = bomb ? "Play again ↗" : "Race again ↗";
   const rank =
     rankPlayers(state.players).findIndex((player) => player.id === session?.playerId) + 1;
   element<HTMLElement>("#race-position").textContent = lobby
-    ? `${state.players.length} / ${MAX_PLAYERS} racers`
+    ? `${state.players.length} / ${playerCapacity(state.mode)} racers`
     : `#${rank} / ${state.players.length}`;
   element<HTMLElement>("#room-title").textContent = lobby
-    ? "The team is lining up."
+    ? bomb
+      ? "A little suspense. A shared start."
+      : "The team is lining up."
     : state.phase === "finished"
       ? "That's a wrap."
-      : "Make every letter count.";
+      : bomb
+        ? "Hold your breath, team."
+        : "Make every letter count.";
+  if (bomb) {
+    bombScene.update(state, session.playerId, connection?.now() ?? state.serverNow);
+    element("#result").hidden = true;
+    return;
+  }
   element<HTMLElement>("#challenge-heading").textContent = lobby
     ? "Get ready to race"
     : `${LANGUAGE_LABELS[state.language]} · your next few hundred meters`;
@@ -343,7 +364,7 @@ function renderTyping(): void {
 
 function sendProgress(): void {
   progressTimer = undefined;
-  if (!state?.raceId || !connection || state.phase === "finished") return;
+  if (!state?.raceId || state.mode === "bomb" || !connection || state.phase === "finished") return;
   const text = input.value;
   if (text === lastSentText) return;
   if (connection.send({ type: "progress", raceId: state.raceId, sequence: ++sequence, text }))
@@ -370,8 +391,14 @@ input.addEventListener("drop", (event) => event.preventDefault());
 function updateClock(): void {
   if (!connection || !state) return;
   const now = connection.now();
-  scene.tick(now, connection.status === "connected", connection.clockReady);
-  const racing = state.startAt !== null && now >= state.startAt && state.phase !== "finished";
+  if (state.mode === "bomb")
+    bombScene.tick(now, connection.status === "connected", connection.clockReady);
+  else scene.tick(now, connection.status === "connected", connection.clockReady);
+  const racing =
+    state.mode !== "bomb" &&
+    state.startAt !== null &&
+    now >= state.startAt &&
+    state.phase !== "finished";
   input.disabled = !racing || connection.status !== "connected" || !connection.clockReady;
   if (racing && !input.disabled && focusedRace !== state.raceId) {
     focusedRace = state.raceId;
@@ -389,9 +416,10 @@ function updateClock(): void {
     state.phase === "lobby" && connection.status === "connected",
   );
   startButton.disabled =
+    connection.status !== "connected" ||
     !connection.clockReady ||
     state.players.length < 2 ||
-    state.players.some((player) => !player.ready || !player.connected);
+    (state.mode !== "bomb" && state.players.some((player) => !player.ready || !player.connected));
   element<HTMLElement>("#countdown").textContent =
     state.phase === "finished"
       ? "FINISH"
@@ -411,6 +439,7 @@ window.addEventListener("pagehide", () => {
   if (progressTimer !== undefined) clearTimeout(progressTimer);
   connection?.close();
   scene.destroy();
+  bombScene.destroy();
 });
 
 if (roomId.success) {

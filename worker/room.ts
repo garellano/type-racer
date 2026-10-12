@@ -3,12 +3,15 @@ import { z } from "zod";
 import { selectPassage } from "../shared/passage-selection";
 import { selectStandupStarter } from "../shared/results";
 import { chooseCharacter, type CharacterId } from "../shared/characters";
+import { BOMB_SELECTION_MS, BOMB_COUNTDOWN_MS, BOMB_FINALE_MS, cutTimes } from "../shared/bomb";
+import { shuffled } from "./bomb-random";
 import {
   clientMessageSchema,
   correctPrefix,
   COUNTDOWN_MS,
   MAX_MESSAGE_BYTES,
-  MAX_PLAYERS,
+  MAX_BOMB_PLAYERS,
+  playerCapacity,
   RACE_TIMEOUT_MS,
   ROOM_LIFETIME_MS,
   snapshotSchema,
@@ -25,9 +28,16 @@ const storedPlayerSchema = snapshotSchema.shape.players.element.omit({ connected
   secretHash: z.string().length(64),
 });
 const stateSchema = snapshotSchema.omit({ serverNow: true, players: true }).extend({
-  players: z.array(storedPlayerSchema).max(MAX_PLAYERS),
+  players: z.array(storedPlayerSchema).max(MAX_BOMB_PLAYERS),
   passageDay: z.string().default(""),
   passageHistory: z.array(z.string().max(500)).max(3).default([]),
+  bombPlan: z
+    .object({
+      order: z.array(z.int()).max(MAX_BOMB_PLAYERS),
+      times: z.array(z.number()).max(MAX_BOMB_PLAYERS),
+    })
+    .nullable()
+    .default(null),
 });
 type RoomState = z.infer<typeof stateSchema>;
 const attachmentSchema = z.object({ playerId: z.uuid().nullable() });
@@ -103,6 +113,69 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
     state.standupTieCount = starter.tieCount;
   }
 
+  private beginBomb(state: RoomState, now: number): void {
+    const bomb = state.bomb;
+    if (!bomb) throw new Error("Missing bomb.");
+    const available = shuffled(bomb.cables.filter((cable) => cable.playerId === null));
+    for (const player of state.players) {
+      if (bomb.cables.some((cable) => cable.playerId === player.id)) continue;
+      const cable = available.pop();
+      if (!cable) throw new Error("Missing available cable.");
+      cable.playerId = player.id;
+    }
+    // Draw only after selection closes. Persist the private permutation in the same commit.
+    state.startAt = now + BOMB_COUNTDOWN_MS;
+    const times = cutTimes(state.players.length, state.startAt);
+    state.bombPlan = { order: shuffled(bomb.cables.map((cable) => cable.id)), times };
+    state.deadline = times.at(-1)! + BOMB_FINALE_MS;
+    state.phase = "countdown";
+    bomb.nextCutAt = times[0]!;
+  }
+
+  private advanceBomb(state: RoomState, now: number): boolean {
+    if (state.mode !== "bomb" || !state.bomb || state.phase === "finished") return false;
+    const bomb = state.bomb;
+    let changed = false;
+    if (state.phase === "selecting" && now >= bomb.selectionEndsAt) {
+      // Anchor timeout rounds to their scheduled deadline even if an alarm arrives late.
+      this.beginBomb(state, bomb.selectionEndsAt);
+      changed = true;
+    }
+    if (state.phase === "countdown" && now >= (state.startAt ?? Infinity)) {
+      state.phase = "defusing";
+      changed = true;
+    }
+    const plan = state.bombPlan;
+    if (!plan) return changed;
+    if (state.phase === "defusing") {
+      for (const [index, time] of plan.times.entries()) {
+        if (time > now) break;
+        const cable = bomb.cables.find((item) => item.id === plan.order[index]);
+        if (cable && cable.cutAt === null) {
+          cable.cutAt = time;
+          changed = true;
+        }
+      }
+      bomb.nextCutAt = plan.times.find((time) => time > now) ?? null;
+      if (bomb.nextCutAt === null) {
+        state.phase = "finale";
+        bomb.explodeAt = state.deadline;
+        changed = true;
+      }
+    }
+    if (state.phase === "finale" && now >= (state.deadline ?? Infinity)) {
+      state.phase = "finished";
+      state.outcome = "completed";
+      state.finishAt = state.deadline;
+      state.standupStarterId = bomb.cables.find(
+        (cable) => cable.id === plan.order.at(-1),
+      )!.playerId;
+      state.standupTieCount = state.players.length;
+      changed = true;
+    }
+    return changed;
+  }
+
   private connected(id: string): boolean {
     return this.ctx
       .getWebSockets()
@@ -115,7 +188,7 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
   }
 
   private snapshot(state = this.load()): Snapshot {
-    const { passageDay: _day, passageHistory: _history, ...publicState } = state;
+    const { passageDay: _day, passageHistory: _history, bombPlan: _plan, ...publicState } = state;
     return {
       ...publicState,
       serverNow: Date.now(),
@@ -152,11 +225,21 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
   private async scheduleAlarm(): Promise<void> {
     const state = this.load();
     const next =
-      state.phase === "countdown"
-        ? state.startAt
-        : state.phase === "racing"
-          ? state.deadline
-          : null;
+      state.mode === "bomb" && state.bomb
+        ? state.phase === "selecting"
+          ? state.bomb.selectionEndsAt
+          : state.phase === "countdown"
+            ? state.startAt
+            : state.phase === "defusing"
+              ? state.bomb.nextCutAt
+              : state.phase === "finale"
+                ? state.deadline
+                : null
+        : state.phase === "countdown"
+          ? state.startAt
+          : state.phase === "racing"
+            ? state.deadline
+            : null;
     await this.ctx.storage.setAlarm(Math.min(next ?? state.expiresAt, state.expiresAt));
   }
 
@@ -187,6 +270,8 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
       passageHistory: [],
       language: "english",
       mode,
+      bomb: null,
+      bombPlan: null,
       passage: "",
       expiresAt: Date.now() + ROOM_LIFETIME_MS,
       players: [
@@ -206,14 +291,23 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
     return { roomId, session };
   }
 
-  async join(name: string, characterId?: CharacterId): Promise<Admission> {
+  async join(
+    name: string,
+    characterId?: CharacterId,
+  ): Promise<Admission | { error: string; status: number }> {
     const session = { playerId: crypto.randomUUID(), secret: crypto.randomUUID() };
     const secretHash = await hashSecret(session.secret);
     const state = this.load();
     if (state.phase !== "lobby")
-      throw new RoomError(409, "The race has already started. Join after the host resets it.");
-    if (state.players.length >= MAX_PLAYERS)
-      throw new RoomError(409, `This room is full (${MAX_PLAYERS} racers maximum).`);
+      return {
+        status: 409,
+        error: "The round has already started. Join after the host resets it.",
+      };
+    if (state.players.length >= playerCapacity(state.mode))
+      return {
+        status: 409,
+        error: `This room is full (${playerCapacity(state.mode)} ${state.mode === "bomb" ? "participants" : "racers"} maximum).`,
+      };
     state.players.push({
       id: session.playerId,
       name,
@@ -246,7 +340,7 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
     this.load();
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket")
       return new Response("WebSocket upgrade required.", { status: 426 });
-    if (this.ctx.getWebSockets().length >= MAX_PLAYERS * 2)
+    if (this.ctx.getWebSockets().length >= MAX_BOMB_PLAYERS * 2)
       return new Response("Too many connections.", { status: 429 });
     const pair = new WebSocketPair();
     const client = pair[0];
@@ -277,6 +371,10 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
           }
         }
         socket.serializeAttachment({ playerId: message.session.playerId });
+        if (this.advanceBomb(state, Date.now())) {
+          this.commit(state);
+          this.ctx.waitUntil(this.scheduleAlarm());
+        }
         this.broadcast();
         return;
       }
@@ -286,8 +384,13 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
       const player = state.players.find((item) => item.id === playerId);
       if (!player) throw new RoomError(403, "Player is no longer in this room.");
       const now = Date.now();
-      let phaseChanged = false;
-      if (state.phase === "countdown" && state.startAt !== null && now >= state.startAt) {
+      let phaseChanged = this.advanceBomb(state, now);
+      if (
+        state.mode !== "bomb" &&
+        state.phase === "countdown" &&
+        state.startAt !== null &&
+        now >= state.startAt
+      ) {
         state.phase = "racing";
         phaseChanged = true;
       }
@@ -298,6 +401,7 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
       if (phaseChanged) {
         this.commit(state);
         this.broadcast();
+        this.ctx.waitUntil(this.scheduleAlarm());
       }
       if (message.type === "ping") {
         this.send(socket, { type: "pong", sentAt: message.sentAt, serverNow: now });
@@ -305,6 +409,7 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
       }
       if (message.type === "progress") {
         if (
+          state.mode === "bomb" ||
           state.phase !== "racing" ||
           message.raceId !== state.raceId ||
           message.sequence <= player.sequence
@@ -322,6 +427,25 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
           this.broadcast();
           await this.scheduleAlarm();
         } else this.broadcastSoon();
+        return;
+      }
+      if (message.type === "wire") {
+        if (state.mode !== "bomb" || message.raceId !== state.raceId) return;
+        const bomb = state.bomb;
+        if (!bomb) return;
+        const assigned = bomb.cables.find((cable) => cable.playerId === playerId);
+        // Retried packets are harmless. A confirmed choice can never be changed.
+        if (assigned?.id === message.cableId) return;
+        if (state.phase !== "selecting" || assigned)
+          throw new RoomError(409, "Your cable is locked for this round.");
+        const cable = bomb.cables.find((item) => item.id === message.cableId);
+        if (!cable || cable.playerId !== null)
+          throw new RoomError(409, "That cable was just taken. Choose another cable.");
+        cable.playerId = playerId;
+        if (bomb.cables.every((item) => item.playerId !== null)) this.beginBomb(state, now);
+        this.commit(state);
+        this.broadcast();
+        await this.scheduleAlarm();
         return;
       }
       if (message.type === "ready") {
@@ -364,6 +488,11 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
           );
         const language = message.language ?? state.language;
         const mode = message.mode ?? state.mode;
+        if (state.players.length > playerCapacity(mode))
+          throw new RoomError(
+            409,
+            "Typing races support up to nine racers. Keep this group in Defuse the bomb or create a smaller room.",
+          );
         if (state.language === language && state.mode === mode) return;
         state.language = language;
         state.mode = mode;
@@ -377,12 +506,31 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
         if (state.phase !== "lobby") throw new RoomError(409, "The race is already underway.");
         if (
           state.players.length < 2 ||
-          state.players.some((item) => !item.ready || !this.connected(item.id))
+          (state.mode === "bomb"
+            ? !this.connected(state.hostId)
+            : state.players.some((item) => !item.ready || !this.connected(item.id)))
         ) {
           throw new RoomError(
             409,
-            "At least two racers must be connected, and everyone must be ready.",
+            state.mode === "bomb"
+              ? "Invite at least one teammate before starting the bomb."
+              : "At least two racers must be connected, and everyone must be ready.",
           );
+        }
+        if (state.mode === "bomb") {
+          state.raceId = crypto.randomUUID();
+          state.phase = "selecting";
+          state.bomb = {
+            selectionEndsAt: now + BOMB_SELECTION_MS,
+            nextCutAt: null,
+            explodeAt: null,
+            cables: state.players.map((_item, id) => ({ id, playerId: null, cutAt: null })),
+          };
+          state.bombPlan = null;
+          this.commit(state);
+          this.broadcast();
+          await this.scheduleAlarm();
+          return;
         }
         const choice = crypto.getRandomValues(new Uint32Array(1))[0] ?? 0;
         const selected = selectPassage(
@@ -418,6 +566,8 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
         state.standupStarterId = null;
         state.standupTieCount = 0;
         state.passage = "";
+        state.bomb = null;
+        state.bombPlan = null;
         for (const item of state.players) {
           item.ready = false;
           item.progress = 0;
@@ -475,6 +625,14 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
       this.broadcastTimer = undefined;
       for (const socket of this.ctx.getWebSockets()) socket.close(4004, "Room expired.");
       await this.ctx.storage.deleteAll();
+      return;
+    }
+    if (state.mode === "bomb") {
+      if (this.advanceBomb(state, now)) {
+        this.commit(state);
+        this.broadcast();
+      }
+      await this.scheduleAlarm();
       return;
     }
     if (state.phase === "countdown" && state.startAt !== null && now >= state.startAt) {

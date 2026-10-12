@@ -19,14 +19,16 @@ The bounded state also saves the daily passage key and up to three recent choice
 1. `POST /rooms` creates a room and admits its host.
 2. `POST /rooms/:id/join` admits a guest or validates a session for resume.
 3. `GET /rooms/:id/socket` upgrades to WebSocket; its first message authenticates.
-4. `ready` changes lobby readiness. Only the host controls `configure`, `start`, and `reset`. Lobby-only `configure` selects `cars` or `sacks`, and `english`, `spanish`, or `java`; a changed choice clears all ready marks. Reset retains both choices. Each authenticated racer can send `character` to change only their own avatar in the lobby; this clears only their own readiness.
+4. `ready` changes lobby readiness. Only the host controls `configure`, `start`, and `reset`. Lobby-only `configure` selects `cars`, `sacks`, or `bomb`, and `english`, `spanish`, or `java`; a changed choice clears all ready marks. Reset retains both choices. Each authenticated racer can send `character` to change only their own avatar in the lobby; this clears only their own readiness.
 5. `start` selects one passage from the chosen race mode and language's shared catalog, assigns a new epoch, common text, `startAt = server time + 5 seconds`, and a 90-second deadline. Mode, language, and character changes are rejected until the round finishes and resets.
 6. `progress` carries epoch, increasing sequence, and typed text. The server calculates the correct prefix; it never accepts client coordinates or finish timestamps.
 7. Browser changes group at 100 ms; the final character sends immediately. Server progress snapshots group at 100 ms while changes exist. Lifecycle events and results broadcast immediately.
 8. `ping` / `pong` estimate clock offset and round-trip latency. Versioned snapshots include a server timestamp; older versions are discarded.
 9. Resume returns current state and sequence. A second connection for a session replaces the first, preventing duplicate racers.
 
-Shared runtime schemas live in `shared/protocol.ts`. Limits: 2 KiB WebSocket input, 1 KiB HTTP JSON, 24-character names, 500-character race input, nine racers, eighteen sockets. Session credentials travel in JSON and the first WebSocket message, never invitation URLs. Public snapshots omit secrets and hashes.
+Shared runtime schemas live in `shared/protocol.ts`. Limits: 2 KiB WebSocket input, 1 KiB HTTP JSON, 24-character names, 500-character race input, nine typing racers or 25 bomb participants, up to fifty sockets. Session credentials travel in JSON and the first WebSocket message, never invitation URLs. Public snapshots omit secrets, hashes, and the bomb's private permutation.
+
+Bomb rounds use the same authenticated transport with a `wire` command and server-owned selection, countdown, cuts, and finale phases. The roster freezes at host start, missing choices receive an automatic assignment, and an unbiased cryptographic permutation selects the opening speaker. See [the bomb design](bomb.md).
 
 ## Clock and fairness
 

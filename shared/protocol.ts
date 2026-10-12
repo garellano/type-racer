@@ -3,6 +3,7 @@ import { RACE_LANGUAGES } from "./passages";
 import { CHARACTER_IDS } from "./characters";
 
 export const MAX_PLAYERS = 9;
+export const MAX_BOMB_PLAYERS = 25;
 export const COUNTDOWN_MS = 5000;
 export const RACE_TIMEOUT_MS = 90000;
 export const ROOM_LIFETIME_MS = 2 * 60 * 60 * 1000;
@@ -11,12 +12,16 @@ export const MAX_MESSAGE_BYTES = 2048;
 export const TRACK_METERS = 300;
 
 export const languageSchema = z.enum(RACE_LANGUAGES);
-export const gameModeSchema = z.enum(["cars", "sacks"]);
+export const gameModeSchema = z.enum(["cars", "sacks", "bomb"]);
 export type GameMode = z.infer<typeof gameModeSchema>;
 export const GAME_MODE_LABELS: Record<GameMode, string> = {
   cars: "Race cars",
   sacks: "Jump with sacks",
+  bomb: "Defuse the bomb",
 };
+export function playerCapacity(mode: GameMode): number {
+  return mode === "bomb" ? MAX_BOMB_PLAYERS : MAX_PLAYERS;
+}
 export const characterIdSchema = z.enum(CHARACTER_IDS);
 export const roomIdSchema = z.uuid();
 export const nameSchema = z
@@ -53,6 +58,16 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("leave") }).strict(),
   z
     .object({
+      type: z.literal("wire"),
+      raceId: z.uuid(),
+      cableId: z
+        .int()
+        .min(0)
+        .max(MAX_BOMB_PLAYERS - 1),
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("progress"),
       raceId: z.uuid(),
       sequence: z.int().min(1),
@@ -72,11 +87,30 @@ export const playerSchema = z.object({
   characterId: characterIdSchema.nullable().default(null),
 });
 export type Player = z.infer<typeof playerSchema>;
+export const bombSchema = z.object({
+  selectionEndsAt: z.number(),
+  nextCutAt: z.number().nullable(),
+  explodeAt: z.number().nullable(),
+  cables: z
+    .array(
+      z.object({
+        id: z
+          .int()
+          .min(0)
+          .max(MAX_BOMB_PLAYERS - 1),
+        playerId: z.uuid().nullable(),
+        cutAt: z.number().nullable(),
+      }),
+    )
+    .min(2)
+    .max(MAX_BOMB_PLAYERS),
+});
+export type Bomb = z.infer<typeof bombSchema>;
 export const snapshotSchema = z.object({
   roomId: roomIdSchema,
   version: z.int().min(0),
   serverNow: z.number(),
-  phase: z.enum(["lobby", "countdown", "racing", "finished"]),
+  phase: z.enum(["lobby", "selecting", "countdown", "racing", "defusing", "finale", "finished"]),
   hostId: z.uuid(),
   raceId: z.uuid().nullable(),
   startAt: z.number().nullable(),
@@ -84,14 +118,15 @@ export const snapshotSchema = z.object({
   winnerId: z.uuid().nullable(),
   finishAt: z.number().nullable(),
   standupStarterId: z.uuid().nullable().default(null),
-  standupTieCount: z.int().min(0).max(MAX_PLAYERS).default(0),
+  standupTieCount: z.int().min(0).max(MAX_BOMB_PLAYERS).default(0),
   outcome: z.enum(["completed", "timeout"]).nullable(),
   // Existing stored rooms and older snapshots predate language selection.
   language: languageSchema.default("english"),
   mode: gameModeSchema.default("cars"),
+  bomb: bombSchema.nullable().default(null),
   passage: z.string(),
   expiresAt: z.number(),
-  players: z.array(playerSchema).max(MAX_PLAYERS),
+  players: z.array(playerSchema).max(MAX_BOMB_PLAYERS),
 });
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export const serverMessageSchema = z.discriminatedUnion("type", [

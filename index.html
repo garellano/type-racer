@@ -25,7 +25,7 @@
         </p>
         <form id="entry-form">
           <fieldset id="entry-mode" class="mode-choice">
-            <legend>Pick today's race</legend>
+            <legend>Pick today's game</legend>
             <label class="mode-card">
               <input type="radio" name="mode" value="cars" checked />
               <span class="mode-art mode-car-art" aria-hidden="true"></span>
@@ -40,8 +40,16 @@
                 ><strong>Jump with sacks</strong><small>Two letters. One happy hop.</small></span
               >
             </label>
+            <label class="mode-card">
+              <input type="radio" name="mode" value="bomb" />
+              <span class="mode-art mode-bomb-art" aria-hidden="true">💣</span>
+              <span
+                ><strong>Defuse the bomb</strong
+                ><small>One wire. A little suspense. Pure chance.</small></span
+              >
+            </label>
           </fieldset>
-          <label for="name">Your racer name</label>
+          <label for="name">Your name</label>
           <div class="entry-controls">
             <input
               id="name"
@@ -65,7 +73,8 @@
           </div>
         </form>
         <div class="entry-notes">
-          <span>02–09 racers</span><span>~1 minute</span><span>No account needed</span>
+          <span>2–9 racers · up to 25 on the bomb</span><span>~1 minute</span
+          ><span>No account needed</span>
         </div>
         <div class="entry-road" aria-hidden="true">
           <span>START</span>
@@ -93,10 +102,11 @@
             </button>
           </div>
           <div class="language-choice">
-            <label for="mode">Race mode</label>
+            <label for="mode">Game mode</label>
             <select id="mode" disabled>
               <option value="cars">Race cars</option>
               <option value="sacks">Jump with sacks</option>
+              <option value="bomb">Defuse the bomb</option>
             </select>
           </div>
           <div class="language-choice">
@@ -126,6 +136,7 @@
             aria-label="Your sack race character"
           ></div>
         </div>
+        <section id="bomb-panel" class="bomb-panel" hidden aria-label="Defuse the bomb"></section>
         <div class="race-layout">
           <section class="track-panel" aria-label="Live race positions">
             <div class="track-heading">

@@ -80,6 +80,8 @@ export default {
           "session" in body.data
             ? await room.resume(body.data.session)
             : await room.join(body.data.name, body.data.characterId);
+        // Expected admission refusals are values, so they do not disturb the room's RPC lifecycle.
+        if ("error" in admission) throw new RoomError(admission.status, admission.error);
         return Response.json(admission, { headers });
       }
       throw new RoomError(405, "Method not allowed.");
