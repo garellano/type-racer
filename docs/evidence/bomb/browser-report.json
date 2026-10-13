@@ -1,0 +1,17 @@
+{
+  "clients": 25,
+  "keyboardSelection": true,
+  "lateJoinRejectedAndHostRecovered": true,
+  "smallFieldVisuals": [2, 5],
+  "sharedSelection": true,
+  "sharedCuts": true,
+  "refreshRecovery": true,
+  "sharedFinalSpeaker": true,
+  "mobileOverflow": false,
+  "mobileCardOverlap": false,
+  "reducedMotion": true,
+  "expiredEffectsDoNotReplay": true,
+  "bombHasNoRaceRank": true,
+  "reset": true,
+  "pageErrors": []
+}

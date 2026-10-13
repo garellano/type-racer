@@ -1,0 +1,385 @@
+.mode-bomb-art {
+  display: grid;
+  place-items: center;
+  font-size: 46px;
+  background: #f5dca7;
+}
+#game[data-mode="bomb"] .race-layout {
+  display: none;
+}
+#game[data-mode="bomb"] .language-choice:has(#language) {
+  visibility: hidden;
+}
+#game[data-mode="bomb"] .room-tools {
+  margin-bottom: 20px;
+}
+.bomb-panel {
+  --wire: #ffd166;
+  color: #edf3f9;
+  background: #142131;
+  border: 1px solid #34465b;
+  border-radius: 20px;
+  padding: 26px 28px 18px;
+  overflow: hidden;
+  box-shadow: 0 14px 50px #12202c16;
+}
+.bomb-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.bomb-eyebrow {
+  color: #f4cc7b;
+  font-size: 10px;
+  letter-spacing: 2px;
+  margin: 0 0 7px;
+}
+.bomb-title {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 32px;
+  margin: 0;
+  letter-spacing: -1px;
+}
+.bomb-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bomb-motion {
+  background: #223449;
+  border: 1px solid #53667b;
+  color: #e7edf5;
+  font-size: 11px;
+  padding: 9px 12px;
+}
+.bomb-motion:hover {
+  background: #344d65;
+}
+.bomb-timer {
+  min-width: 78px;
+  text-align: center;
+  font:
+    700 25px "Space Grotesk",
+    sans-serif;
+  color: #ffd166;
+  padding: 8px;
+  border: 1px solid #736443;
+  border-radius: 8px;
+}
+.bomb-status {
+  color: #ced9e7;
+  font-size: 14px;
+  margin: 15px 0 0;
+  min-height: 22px;
+}
+.bomb-arena {
+  position: relative;
+  aspect-ratio: var(--arena-ratio, 1000 / 560);
+  background:
+    radial-gradient(ellipse at center, #30445766, transparent 60%),
+    radial-gradient(#7c95ab25 1px, transparent 1px);
+  background-size:
+    auto,
+    24px 24px;
+  border-radius: 16px;
+  margin-top: 10px;
+}
+.bomb-wiring,
+.bomb-players {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+}
+.bomb-digital {
+  font:
+    700 25px "Space Grotesk",
+    sans-serif;
+  letter-spacing: 3px;
+}
+.bomb-wire {
+  transition:
+    d 550ms ease,
+    opacity 400ms;
+  filter: drop-shadow(0 2px 2px #0008);
+}
+.bomb-wire[data-state="tangled"] {
+  opacity: 0.8;
+}
+.bomb-wire[data-state="cut"] {
+  stroke-dasharray: 55 9 36;
+  opacity: 0.15;
+}
+.bomb-wire[data-fresh="true"] {
+  animation: wire-snip 650ms ease-out;
+}
+.bomb-player {
+  position: absolute;
+  width: 22%;
+  transform: translateY(-50%);
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  column-gap: 9px;
+  align-items: center;
+  border: 1px solid #4d6379;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #1e3043;
+  box-shadow: 0 4px 15px #0002;
+}
+.bomb-avatar {
+  grid-row: span 2;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: #102030;
+  background: var(--wire);
+  font-weight: 700;
+}
+.bomb-player-name {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bomb-player-badge {
+  color: #bacbdc;
+  font-size: 10px;
+  margin-top: 3px;
+}
+.bomb-player[data-own="true"] {
+  box-shadow: 0 0 0 2px #edf3f9;
+}
+.bomb-player[data-state="connected"] {
+  border-color: var(--wire);
+}
+.bomb-player[data-state="safe"] {
+  border-color: #70d6b1;
+  background: #203f3e;
+}
+.bomb-player[data-state="safe"] .bomb-player-badge {
+  color: #9ef2d2;
+}
+.bomb-player[data-state="starter"] {
+  border-color: #ffd166;
+  background: #544229;
+  box-shadow: 0 0 0 2px #ffd166;
+}
+.bomb-announcement {
+  text-align: center;
+  font-family: "Space Grotesk", sans-serif;
+  color: #a2edd1;
+  font-size: 20px;
+  min-height: 28px;
+  margin: 14px 0;
+}
+.bomb-choice-help {
+  font-size: 13px;
+  color: #ced9e7;
+  text-align: center;
+  margin: 14px auto 10px;
+  max-width: 550px;
+}
+.bomb-choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 9px;
+  max-width: 770px;
+  margin: auto;
+}
+.bomb-plug {
+  background: #24384e;
+  color: #f5f8fc;
+  width: 52px;
+  min-height: 48px;
+  padding: 10px 6px;
+  border: 2px solid var(--wire);
+  border-top-width: 6px;
+  font:
+    700 15px "Space Grotesk",
+    sans-serif;
+  border-radius: 6px 6px 12px 12px;
+}
+.bomb-plug:hover:not(:disabled) {
+  background: #465c72;
+  transform: translateY(-3px);
+}
+.bomb-plug[data-claimed="true"] {
+  opacity: 0.5;
+}
+.bomb-fairness {
+  color: #b3c2d3;
+  text-align: center;
+  font-size: 11px;
+  margin: 22px 0 0;
+}
+.bomb-boom {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(-8deg);
+  font:
+    700 clamp(28px, 6vw, 78px) "Space Grotesk",
+    sans-serif;
+  color: #182131;
+  background: #ffd166;
+  padding: 25px 18px;
+  clip-path: polygon(
+    50% 0,
+    59% 16%,
+    84% 4%,
+    82% 30%,
+    100% 37%,
+    86% 52%,
+    100% 78%,
+    75% 77%,
+    76% 100%,
+    53% 86%,
+    32% 100%,
+    30% 77%,
+    1% 83%,
+    14% 55%,
+    0 31%,
+    28% 31%,
+    26% 7%,
+    43% 20%
+  );
+  display: none;
+}
+.bomb-smoke {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+}
+.bomb-smoke i {
+  position: absolute;
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  background: #b3c7d577;
+  transform: rotate(calc(var(--i) * 45deg)) translateX(90px);
+}
+.bomb-panel[data-phase="finished"] .bomb-boom,
+.bomb-panel[data-phase="finished"] .bomb-smoke {
+  display: block;
+}
+.bomb-panel[data-phase="finished"] .bomb-body {
+  opacity: 0.2;
+}
+.bomb-panel[data-phase="finished"] .bomb-announcement {
+  color: #ffe3a4;
+  font-size: 24px;
+}
+.bomb-panel[data-phase="defusing"] .bomb-spark {
+  animation: fuse-blink var(--pulse-time, 1500ms) infinite alternate;
+}
+.bomb-panel[data-phase="finale"] .bomb-body {
+  animation: bomb-nerves 550ms ease-in-out infinite alternate;
+}
+.bomb-panel[data-phase="finale"] .bomb-spark {
+  animation: fuse-blink 400ms infinite alternate;
+}
+.bomb-panel[data-fresh-finish="true"] .bomb-boom {
+  animation: playful-boom 650ms ease-out;
+}
+.bomb-panel[data-reduced="true"] *,
+.bomb-panel[data-hidden="true"] *,
+.bomb-panel[data-online="false"] * {
+  animation: none !important;
+  transition: none !important;
+}
+@keyframes wire-snip {
+  0% {
+    opacity: 1;
+    stroke-width: 9;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+@keyframes bomb-nerves {
+  to {
+    opacity: 0.65;
+  }
+}
+@keyframes fuse-blink {
+  to {
+    fill: #ff727f;
+    opacity: 0.4;
+  }
+}
+@keyframes playful-boom {
+  from {
+    transform: translate(-50%, -50%) rotate(-18deg) scale(0.3);
+  }
+  70% {
+    transform: translate(-50%, -50%) rotate(4deg) scale(1.2);
+  }
+}
+@media (max-width: 650px) {
+  .bomb-panel {
+    padding: 20px 10px 16px;
+    border-radius: 14px;
+  }
+  .bomb-heading {
+    align-items: start;
+    gap: 8px;
+    flex-direction: column;
+  }
+  .bomb-title {
+    font-size: 28px;
+  }
+  .bomb-controls {
+    width: 100%;
+  }
+  .bomb-timer {
+    margin-left: auto;
+    font-size: 22px;
+  }
+  .bomb-status {
+    font-size: 12px;
+    min-height: 36px;
+  }
+  .bomb-arena {
+    aspect-ratio: auto;
+    min-height: var(--mobile-height, 570px);
+  }
+  .bomb-player {
+    padding: 5px;
+    width: 28%;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    min-height: 40px;
+  }
+  .bomb-player .bomb-avatar {
+    display: none;
+  }
+  .bomb-player:nth-child(odd) {
+    left: 0 !important;
+  }
+  .bomb-player:nth-child(even) {
+    left: 72% !important;
+  }
+  .bomb-player-name {
+    font-size: 11px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .bomb-player-badge {
+    font-size: 8px;
+  }
+  .bomb-announcement {
+    font-size: 17px;
+  }
+  .bomb-panel[data-phase="finished"] .bomb-announcement {
+    font-size: 20px;
+  }
+}

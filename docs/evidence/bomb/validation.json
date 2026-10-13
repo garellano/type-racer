@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-12",
+  "fullCheck": {
+    "command": "npm run check",
+    "result": "passed",
+    "testFiles": 9,
+    "tests": 54,
+    "frontendBuild": "passed",
+    "workerDryRun": "passed",
+    "typeGeneration": "passed"
+  },
+  "workersBombFields": [2, 5, 10, 25],
+  "liveBomb": {
+    "participants": 25,
+    "durationMs": 52031,
+    "automaticAssignment": true,
+    "everySharedCut": true,
+    "offlineFinalRecovery": true
+  },
+  "typingRegression": [
+    {
+      "mode": "cars",
+      "language": "english",
+      "participants": 9,
+      "result": "passed"
+    },
+    {
+      "mode": "sacks",
+      "language": "java",
+      "participants": 9,
+      "result": "passed"
+    }
+  ],
+  "review": {
+    "date": "2026-10-13",
+    "fullCheck": "passed",
+    "typeGeneration": "passed",
+    "tests": 54,
+    "fixes": ["expire cut and explosion effects without snapshots", "remove bomb race rank"]
+  },
+  "deployment": "not deployed"
+}

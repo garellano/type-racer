@@ -18,7 +18,8 @@
     "build:worker": "wrangler deploy --dry-run --outdir dist-worker",
     "deploy:worker": "wrangler deploy",
     "check": "npm run typecheck && npm run format:check && npm test && npm run build && npm run build:worker",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:bomb": "node scripts/bomb-smoke.mjs"
   },
   "dependencies": {
     "zod": "4.6.5"
