@@ -1,0 +1,43 @@
+{
+  "createJoinRestoreWithoutTrackFlash": true,
+  "audiblePCM": {
+    "toggleConfirmation": 0.030018,
+    "lobbySettles": 0,
+    "selection": 0.050327,
+    "muted": 0,
+    "unmuted": 0.065192,
+    "hidden": 0,
+    "visibleAgain": 0.06212,
+    "disconnected": 0,
+    "reconnected": 0.050836,
+    "countdown": 0.050327,
+    "defusing": 0.069564,
+    "finale": 0.063556,
+    "explosion": 0.127198,
+    "resultSettles": 0,
+    "finishedReturn": 0,
+    "otherMode": 0
+  },
+  "mutedAndPausedSilence": true,
+  "failedAudioFeedback": true,
+  "rapidSoundToggle": true,
+  "failedEntryCanRetry": true,
+  "wiresReachCards": true,
+  "mobileOverflow": false,
+  "burstLeavesNamesVisible": true,
+  "motion": {
+    "selection": true,
+    "reducedToggle": false,
+    "motionRestored": true,
+    "systemReducedMotion": false,
+    "hidden": false,
+    "disconnected": false,
+    "defusing": true,
+    "finale": true,
+    "settledResult": false,
+    "finishedReturn": false
+  },
+  "animatedConnectionsAndSafeCards": true,
+  "finiteExplosionEffects": true,
+  "pageErrors": []
+}
