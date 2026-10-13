@@ -64,6 +64,8 @@ export class BombScene {
   private audio: AudioContext | undefined;
   private lastSound = "";
   private lastSecond = "";
+  private effectNow = 0;
+  private effectMeasuredAt = performance.now();
   private connected = false;
   private arenaWidth = 1000;
   private arenaHeight = 560;
@@ -199,8 +201,28 @@ export class BombScene {
   private readonly toggleMotion = () => this.setReduced(!this.reduced);
   private readonly changePreference = () => this.setReduced(this.preference.matches);
   private readonly changeVisibility = () => {
+    // Clear expired effects before resuming CSS animations after a hidden interval.
+    this.refreshEffects(this.effectNow + performance.now() - this.effectMeasuredAt);
     this.root.dataset.hidden = String(document.hidden);
   };
+  private refreshEffects(now: number): void {
+    this.effectNow = now;
+    this.effectMeasuredAt = performance.now();
+    for (const cable of this.state?.bomb?.cables ?? []) {
+      const path = this.wires.get(cable.id);
+      if (path)
+        path.dataset.fresh = String(
+          cable.cutAt !== null && now >= cable.cutAt && now - cable.cutAt < 900,
+        );
+    }
+    const finishAt = this.state?.finishAt;
+    this.root.dataset.freshFinish = String(
+      this.state?.phase === "finished" &&
+        finishAt != null &&
+        now >= finishAt &&
+        now - finishAt < 1800,
+    );
+  }
   private setReduced(value: boolean): void {
     this.reduced = value;
     this.root.dataset.reduced = String(value);
@@ -368,9 +390,6 @@ export class BombScene {
         );
       }
       path.dataset.state = cable.cutAt !== null ? "cut" : cable.playerId ? "connected" : "tangled";
-      path.dataset.fresh = String(
-        cable.cutAt !== null && now - cable.cutAt < 900 && now >= cable.cutAt,
-      );
     }
     const cuts = cables.filter((cable) => cable.cutAt !== null).sort((a, b) => a.cutAt! - b.cutAt!);
     const last = cuts.at(-1);
@@ -399,9 +418,7 @@ export class BombScene {
           ? `✓ ${saved.name} is safe!`
           : "One wire per person. One shared result.",
     );
-    this.root.dataset.freshFinish = String(
-      state.phase === "finished" && now - (state.finishAt ?? 0) < 1800,
-    );
+    this.refreshEffects(now);
     if (last && now - last.cutAt! < 900 && this.lastSound !== `${state.raceId}:${last.id}`) {
       this.lastSound = `${state.raceId}:${last.id}`;
       this.tone(660, 0.13);
@@ -456,6 +473,7 @@ export class BombScene {
   tick(now: number, connected: boolean, clockReady: boolean): void {
     this.connected = connected && clockReady;
     this.root.dataset.online = String(connected);
+    this.refreshEffects(now);
     this.refreshChoices();
     const state = this.state;
     if (!state) return;

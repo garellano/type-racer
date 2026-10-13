@@ -31,5 +31,12 @@
       "result": "passed"
     }
   ],
+  "review": {
+    "date": "2026-10-13",
+    "fullCheck": "passed",
+    "typeGeneration": "passed",
+    "tests": 54,
+    "fixes": ["expire cut and explosion effects without snapshots", "remove bomb race rank"]
+  },
   "deployment": "not deployed"
 }

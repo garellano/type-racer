@@ -10,6 +10,8 @@
   "mobileOverflow": false,
   "mobileCardOverlap": false,
   "reducedMotion": true,
+  "expiredEffectsDoNotReplay": true,
+  "bombHasNoRaceRank": true,
   "reset": true,
   "pageErrors": []
 }

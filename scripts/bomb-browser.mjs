@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { WebSocket } from "ws";
+import { format } from "prettier";
 const { chromium } = await import(process.env.TYPE_RACER_PLAYWRIGHT_MODULE || "playwright");
 const output = resolve("docs/evidence/bomb");
 await mkdir(output, { recursive: true });
@@ -86,6 +87,7 @@ try {
   await guest.locator(".bomb-player").nth(24).waitFor();
   await host.locator("#start").click();
   await host.locator('#bomb-panel[data-phase="selecting"]').waitFor();
+  assert.equal(await host.locator("#race-position").textContent(), "25 teammates");
   await host.locator(".bomb-plug").first().focus();
   await host.keyboard.press("Enter");
   await host.locator('.bomb-player[data-own="true"][data-state="connected"]').waitFor();
@@ -148,6 +150,18 @@ try {
   );
   await host.locator("#bomb-panel").screenshot({ path: `${output}/result-25.png` });
   await guest.locator("#bomb-panel").screenshot({ path: `${output}/result-mobile-25.png` });
+  await host.waitForFunction(
+    () => document.querySelector("#bomb-panel").dataset.freshFinish === "false",
+    null,
+    { timeout: 3000 },
+  );
+  assert.equal(await host.locator('.bomb-wire[data-fresh="true"]').count(), 0);
+  await host.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  assert.equal(
+    await host.locator(".bomb-boom").evaluate((boom) => getComputedStyle(boom).animationName),
+    "none",
+    "Returning to the page must not replay an expired explosion",
+  );
   await host.locator(".bomb-motion").first().click();
   assert.equal(await host.locator("#bomb-panel").getAttribute("data-reduced"), "true");
   await host.locator("#reset").click();
@@ -197,10 +211,15 @@ try {
     mobileOverflow: false,
     mobileCardOverlap: false,
     reducedMotion: true,
+    expiredEffectsDoNotReplay: true,
+    bombHasNoRaceRank: true,
     reset: true,
     pageErrors: errors,
   };
-  await writeFile(`${output}/browser-report.json`, JSON.stringify(report, null, 2) + "\n");
+  await writeFile(
+    `${output}/browser-report.json`,
+    await format(JSON.stringify(report), { parser: "json" }),
+  );
   console.log(JSON.stringify(report));
 } finally {
   for (const socket of sockets) socket.close(1000, "Visual check complete");

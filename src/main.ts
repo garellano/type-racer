@@ -282,9 +282,13 @@ function renderState(): void {
   resetButton.textContent = bomb ? "Play again ↗" : "Race again ↗";
   const rank =
     rankPlayers(state.players).findIndex((player) => player.id === session?.playerId) + 1;
-  element<HTMLElement>("#race-position").textContent = lobby
-    ? `${state.players.length} / ${playerCapacity(state.mode)} racers`
-    : `#${rank} / ${state.players.length}`;
+  element<HTMLElement>("#race-position").textContent = bomb
+    ? lobby
+      ? `${state.players.length} / ${playerCapacity(state.mode)} teammates`
+      : `${state.players.length} teammates`
+    : lobby
+      ? `${state.players.length} / ${playerCapacity(state.mode)} racers`
+      : `#${rank} / ${state.players.length}`;
   element<HTMLElement>("#room-title").textContent = lobby
     ? bomb
       ? "A little suspense. A shared start."
