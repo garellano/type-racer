@@ -9,6 +9,10 @@ const output = resolve("docs/evidence/bomb-polish");
 const sockets = [];
 const errors = [];
 const levels = {};
+const motionChecks = {};
+const videoDirectory = process.env.TYPE_RACER_VIDEO_DIR;
+let motionVideo;
+let preview;
 let browser;
 await mkdir(output, { recursive: true });
 
@@ -107,6 +111,38 @@ async function energy(page, label, duration = 1000, audible = true) {
   else assert(peak < 0.00001, `${label}: expected silence, got ${peak}`);
 }
 
+async function motion(page, label, moving) {
+  const before = await page
+    .locator(".bomb-core")
+    .evaluate((core) => getComputedStyle(core).transform);
+  if (moving)
+    await page.waitForFunction(
+      (before) => getComputedStyle(document.querySelector(".bomb-core")).transform !== before,
+      before,
+      { timeout: 2200 },
+    );
+  else await page.waitForTimeout(170);
+  const after = await page
+    .locator(".bomb-core")
+    .evaluate((core) => getComputedStyle(core).transform);
+  const running = await page
+    .locator("#bomb-panel")
+    .evaluate(
+      (panel) =>
+        panel
+          .getAnimations({ subtree: true })
+          .filter((animation) => animation.playState === "running").length,
+    );
+  if (moving) {
+    assert.notEqual(before, after, `${label}: the bomb should visibly move`);
+    assert(running > 0, `${label}: active animation expected`);
+  } else {
+    assert.equal(before, after, `${label}: the bomb should stay still`);
+    assert.equal(running, 0, `${label}: all effects, including pseudo-elements, must stop`);
+  }
+  motionChecks[label] = moving;
+}
+
 async function teammate(roomId, name) {
   const response = await fetch(`http://127.0.0.1:8787/rooms/${roomId}/join`, {
     method: "POST",
@@ -140,8 +176,15 @@ async function teammate(roomId, name) {
 
 try {
   browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    ...(videoDirectory
+      ? { recordVideo: { dir: videoDirectory, size: { width: 1440, height: 1000 } } }
+      : {}),
+  });
+  const videoStartedAt = Date.now();
   const host = await context.newPage();
+  motionVideo = host.video();
   await observe(host);
   const gate = await delaySnapshots(host);
   await host.goto("http://127.0.0.1:5173/type-racer/");
@@ -174,6 +217,14 @@ try {
   await host.locator(".bomb-player").nth(4).waitFor();
   await host.locator("#start").click();
   await host.locator('#bomb-panel[data-phase="selecting"]').waitFor();
+  await motion(host, "selection", true);
+  await host.locator(".bomb-motion").first().click();
+  await motion(host, "reducedToggle", false);
+  await host.locator(".bomb-motion").first().click();
+  await motion(host, "motionRestored", true);
+  await guest.emulateMedia({ reducedMotion: "reduce" });
+  await motion(guest, "systemReducedMotion", false);
+  await guest.emulateMedia({ reducedMotion: "no-preference" });
   await energy(host, "selection");
   await host.getByRole("button", { name: "Turn suspense sound off", exact: true }).click();
   await energy(host, "muted", 600, false);
@@ -184,6 +235,7 @@ try {
     document.dispatchEvent(new Event("visibilitychange"));
   });
   await energy(host, "hidden", 600, false);
+  await motion(host, "hidden", false);
   await host.evaluate(() => {
     Object.defineProperty(document, "hidden", { configurable: true, value: false });
     document.dispatchEvent(new Event("visibilitychange"));
@@ -191,6 +243,7 @@ try {
   await energy(host, "visibleAgain");
   await gate.disconnect();
   await energy(host, "disconnected", 700, false);
+  await motion(host, "disconnected", false);
   const reconnectDeadline = Date.now() + 5000;
   while (!gate.queued()) {
     assert(Date.now() < reconnectDeadline, "Host reconnection timed out");
@@ -202,6 +255,16 @@ try {
   );
   await energy(host, "reconnected");
   await host.locator(".bomb-plug").first().click();
+  await host.locator('.bomb-player[data-own="true"][data-fresh-connected="true"]').waitFor();
+  const flow = host.locator('.bomb-wire-flow[data-fresh="true"]').first();
+  await host.waitForTimeout(300);
+  const flowStart = await flow.evaluate((path) => getComputedStyle(path).strokeDashoffset);
+  await host.waitForTimeout(170);
+  assert.notEqual(
+    await flow.evaluate((path) => getComputedStyle(path).strokeDashoffset),
+    flowStart,
+    "Light should travel along the newly connected wire",
+  );
   await guest.locator(".bomb-plug").nth(1).click();
   const raceId = clients[0].state().raceId;
   clients.forEach((client, index) =>
@@ -232,19 +295,55 @@ try {
   }
   await energy(host, "countdown");
   await host.locator('#bomb-panel[data-phase="defusing"]').waitFor();
+  assert.equal(
+    await host.locator('.bomb-wire-flow[data-fresh="true"]').count(),
+    0,
+    "Connection effects expire without later snapshots",
+  );
   await host.evaluate(() => {
     window.__sound.recording = true;
   });
   await energy(host, "defusing");
+  await motion(host, "defusing", true);
+  await host.locator('.bomb-player[data-fresh-safe="true"]').first().waitFor({ timeout: 20000 });
+  assert.equal(
+    await host
+      .locator('.bomb-player[data-fresh-safe="true"]')
+      .first()
+      .evaluate((card) => getComputedStyle(card, "::after").animationName),
+    "card-ripple",
+    "The saved participant gets immediate feedback",
+  );
+  await host.waitForFunction(
+    () => document.querySelectorAll('.bomb-player[data-fresh-safe="true"]').length === 0,
+    null,
+    { timeout: 2000 },
+  );
   await host.locator('#bomb-panel[data-phase="finale"]').waitFor({ timeout: 35000 });
+  if (videoDirectory) {
+    await host.locator("#bomb-panel").scrollIntoViewIfNeeded();
+    preview = {
+      start: (Date.now() - videoStartedAt) / 1000,
+      crop: await host.locator("#bomb-panel").boundingBox(),
+    };
+  }
+  await motion(host, "finale", true);
   await energy(host, "finale", 700);
   await host.locator('#bomb-panel[data-phase="finished"]').waitFor();
+  const explosionAnimations = await host
+    .locator("#bomb-panel")
+    .evaluate((panel) =>
+      panel.getAnimations({ subtree: true }).map((animation) => animation.animationName),
+    );
+  for (const name of ["playful-boom", "explosion-wave", "explosion-particle"])
+    assert(explosionAnimations.includes(name), `${name}: explosion effect is active`);
   await energy(host, "explosion", 850);
   await host.waitForTimeout(1000);
   await host.evaluate(() => {
     window.__sound.recording = false;
   });
   await energy(host, "resultSettles", 600, false);
+  await motion(host, "settledResult", false);
   await host.locator("#bomb-panel").screenshot({ path: `${output}/result-desktop.png` });
   await guest.locator("#bomb-panel").screenshot({ path: `${output}/result-mobile.png` });
   assert.equal(
@@ -292,6 +391,7 @@ try {
   await writeFile(`${output}/suspense-preview.wav`, wav);
   await host.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
   await energy(host, "finishedReturn", 700, false);
+  await motion(host, "finishedReturn", false);
   await host.locator("#reset").click();
   await host.locator('#bomb-panel[data-phase="lobby"]').waitFor();
   await host.evaluate(() => {
@@ -366,6 +466,9 @@ try {
     wiresReachCards: true,
     mobileOverflow: false,
     burstLeavesNamesVisible: true,
+    motion: motionChecks,
+    animatedConnectionsAndSafeCards: true,
+    finiteExplosionEffects: true,
     pageErrors: errors,
   };
   await writeFile(
@@ -377,3 +480,8 @@ try {
   for (const socket of sockets) socket.close(1000, "Polish check complete");
   await browser?.close();
 }
+if (videoDirectory && motionVideo && preview)
+  await writeFile(
+    resolve(videoDirectory, "preview.json"),
+    JSON.stringify({ ...preview, video: await motionVideo.path() }),
+  );

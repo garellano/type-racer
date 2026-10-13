@@ -41,6 +41,7 @@ export class BombScene {
   private readonly arena = node("div", "bomb-arena");
   private readonly wiring = svg("svg", { class: "bomb-wiring", "aria-hidden": "true" });
   private readonly paths = svg("g", {});
+  private readonly flowPaths = svg("g", {});
   private readonly players = node("div", "bomb-players");
   private readonly choices = node("div", "bomb-choices");
   private readonly choiceHelp = node("p", "bomb-choice-help");
@@ -53,6 +54,8 @@ export class BombScene {
     { card: HTMLElement; name: HTMLElement; badge: HTMLElement }
   >();
   private readonly wires = new Map<number, SVGPathElement>();
+  private readonly flows = new Map<number, SVGPathElement>();
+  private readonly connections = new Map<number, number>();
   private readonly plugs = new Map<number, HTMLButtonElement>();
   private state: Snapshot | undefined;
   private ownId = "";
@@ -67,6 +70,8 @@ export class BombScene {
   private readonly soundHelp = node("p", "bomb-sound-help");
   private effectNow = 0;
   private effectMeasuredAt = performance.now();
+  private countdownBeatUntil = 0;
+  private countdownKey = "";
   private connected = false;
   private arenaWidth = 1000;
   private arenaHeight = 560;
@@ -77,6 +82,7 @@ export class BombScene {
     private readonly root: HTMLElement,
     private readonly choose: (id: number) => boolean,
   ) {
+    root.dataset.active = root.dataset.online = "false";
     const header = node("div", "bomb-heading");
     const heading = node("div", "");
     heading.append(node("p", "bomb-eyebrow", "THE STANDUP SWITCHBOARD"), this.title);
@@ -92,7 +98,9 @@ export class BombScene {
     this.choices.setAttribute("role", "group");
     this.choices.setAttribute("aria-label", "Choose your cable");
     const body = svg("g", { class: "bomb-body" });
-    body.append(
+    // Animate around the socket inside the layout transform, keeping wire endpoints stable.
+    const core = svg("g", { class: "bomb-core" });
+    core.append(
       svg("image", {
         href: `${import.meta.env.BASE_URL}art/bomb/bomb-v2.webp`,
         x: "335",
@@ -109,6 +117,13 @@ export class BombScene {
         class: "bomb-spark",
       }),
     );
+    const embers = svg("g", { class: "bomb-embers" });
+    for (let index = 0; index < 5; index++) {
+      const ember = svg("circle", { cx: "582", cy: "133", r: "2", fill: "#ffd166" });
+      ember.style.setProperty("--drift", `${(index - 2) * 7}px`);
+      ember.style.animationDelay = `${index * -0.24}s`;
+      embers.append(ember);
+    }
     const display = svg("text", {
       x: "500",
       y: "286",
@@ -117,8 +132,9 @@ export class BombScene {
       class: "bomb-digital",
     });
     display.textContent = "? ? ?";
-    body.append(display);
-    this.wiring.append(body, this.paths);
+    core.append(embers, display);
+    body.append(core);
+    this.wiring.append(body, this.paths, this.flowPaths);
     this.wiring.setAttribute("preserveAspectRatio", "none");
     const boom = node("div", "bomb-boom");
     boom.setAttribute("aria-hidden", "true");
@@ -127,7 +143,17 @@ export class BombScene {
     burst.alt = "";
     burst.width = burst.height = 1280;
     boom.append(burst, node("strong", "bomb-boom-label", "BOOM!"));
-    this.arena.append(this.wiring, this.players, boom);
+    const aura = node("div", "bomb-aura");
+    const shockwave = node("div", "bomb-shockwave");
+    const particles = node("div", "bomb-particles");
+    for (const effect of [aura, shockwave, particles]) effect.setAttribute("aria-hidden", "true");
+    for (let index = 0; index < 10; index++) {
+      const spark = node("i", "bomb-particle");
+      spark.style.setProperty("--angle", `${index * 36}deg`);
+      spark.style.setProperty("--delay", `${(index % 3) * 35}ms`);
+      particles.append(spark);
+    }
+    this.arena.append(aura, this.wiring, shockwave, particles, boom, this.players);
     this.soundHelp.hidden = true;
     this.soundHelp.setAttribute("role", "status");
     const footer = node(
@@ -171,12 +197,27 @@ export class BombScene {
     this.effectMeasuredAt = performance.now();
     for (const cable of this.state?.bomb?.cables ?? []) {
       const path = this.wires.get(cable.id);
-      if (path)
-        path.dataset.fresh = String(
-          cable.cutAt !== null && now >= cable.cutAt && now - cable.cutAt < 900,
-        );
+      const freshCut = cable.cutAt !== null && now >= cable.cutAt && now - cable.cutAt < 900;
+      const freshConnection = cable.cutAt === null && now < (this.connections.get(cable.id) ?? 0);
+      if (path) path.dataset.fresh = String(freshCut);
+      const flow = this.flows.get(cable.id);
+      if (flow) flow.dataset.fresh = String(freshConnection);
+      const card = cable.playerId ? this.cards.get(cable.playerId)?.card : undefined;
+      if (card) {
+        card.dataset.freshSafe = String(freshCut);
+        card.dataset.freshConnected = String(freshConnection);
+      }
+      if (!freshConnection) this.connections.delete(cable.id);
     }
+    this.timer.dataset.beat = String(
+      this.state?.phase === "countdown" && now < this.countdownBeatUntil,
+    );
     const finishAt = this.state?.finishAt;
+    this.root.dataset.overdue = String(
+      this.state?.phase !== "finished" &&
+        this.state?.deadline != null &&
+        now >= this.state.deadline,
+    );
     this.root.dataset.freshFinish = String(
       this.state?.phase === "finished" &&
         finishAt != null &&
@@ -216,6 +257,7 @@ export class BombScene {
   }
 
   setActive(active: boolean): void {
+    this.root.dataset.active = String(active);
     this.audio.setActive(active);
   }
 
@@ -229,16 +271,24 @@ export class BombScene {
   }
 
   update(state: Snapshot, ownId: string, now: number): void {
+    const previous = this.state;
     this.state = state;
     this.ownId = ownId;
     this.root.dataset.phase = state.phase;
     const remaining =
       state.bomb?.cables.filter((cable) => cable.cutAt === null).length ?? state.players.length;
-    this.root.style.setProperty("--pulse-time", `${Math.max(500, remaining * 100)}ms`);
+    const pulse =
+      state.phase === "finale"
+        ? 650
+        : 650 + 950 * (remaining / Math.max(1, state.bomb?.cables.length ?? state.players.length));
+    this.root.style.setProperty("--pulse-time", `${Math.round(pulse)}ms`);
     if (this.round !== state.raceId) {
       this.round = state.raceId;
       this.pending = null;
       this.feedback = null;
+      this.connections.clear();
+      this.countdownKey = "";
+      this.countdownBeatUntil = 0;
     }
     const height = Math.max(560, Math.ceil(state.players.length / 2) * 59 + 100);
     this.arena.style.setProperty("--arena-ratio", `1000 / ${height}`);
@@ -306,6 +356,9 @@ export class BombScene {
       if (!cables.some((cable) => cable.id === id)) {
         path.remove();
         this.wires.delete(id);
+        this.flows.get(id)?.remove();
+        this.flows.delete(id);
+        this.connections.delete(id);
         this.plugs.get(id)?.remove();
         this.plugs.delete(id);
       }
@@ -321,6 +374,16 @@ export class BombScene {
         });
         this.paths.append(path);
         this.wires.set(cable.id, path);
+        const flow = svg("path", {
+          class: "bomb-wire-flow",
+          fill: "none",
+          stroke: "#fff5bf",
+          "stroke-width": "3",
+          "stroke-linecap": "round",
+          pathLength: "100",
+        });
+        this.flowPaths.append(flow);
+        this.flows.set(cable.id, flow);
         const plug = node("button", "bomb-plug");
         plug.type = "button";
         plug.style.setProperty("--wire", COLORS[cable.id % COLORS.length]!);
@@ -338,6 +401,15 @@ export class BombScene {
       }
       path.setAttribute("stroke", COLORS[cable.id % COLORS.length]!);
       path.dataset.state = cable.cutAt !== null ? "cut" : cable.playerId ? "connected" : "tangled";
+      if (
+        this.connected &&
+        !document.hidden &&
+        !this.root.hidden &&
+        previous?.raceId === state.raceId &&
+        cable.playerId !== null &&
+        previous?.bomb?.cables.find((item) => item.id === cable.id)?.playerId === null
+      )
+        this.connections.set(cable.id, now + 1500);
     }
     this.positionWires();
     const cuts = cables.filter((cable) => cable.cutAt !== null).sort((a, b) => a.cutAt! - b.cutAt!);
@@ -413,6 +485,7 @@ export class BombScene {
           `M${startX} ${startY} C${left ? 360 : 640} ${center + 115 * scaleY * size} ${left ? 325 : 675} ${y} ${left ? (mobile ? 280 : 237) : mobile ? 720 : 763} ${y}`,
         );
       }
+      this.flows.get(cable.id)?.setAttribute("d", path.getAttribute("d")!);
     }
   }
 
@@ -451,8 +524,7 @@ export class BombScene {
 
   tick(now: number, connected: boolean, clockReady: boolean): void {
     this.connected = connected && clockReady;
-    this.root.dataset.online = String(connected);
-    this.refreshEffects(now);
+    this.root.dataset.online = String(this.connected);
     this.refreshChoices();
     const state = this.state;
     if (!state) return;
@@ -465,6 +537,13 @@ export class BombScene {
             ? state.deadline
             : state.bomb?.nextCutAt;
     const seconds = target == null ? 0 : Math.max(0, Math.ceil((target - now) / 1000));
+    const countdownKey = `${state.raceId}:${state.phase}:${seconds}`;
+    if (countdownKey !== this.countdownKey) {
+      this.countdownKey = countdownKey;
+      if (state.phase === "countdown" && seconds > 0 && this.connected && !document.hidden)
+        this.countdownBeatUntil = now + 500;
+    }
+    this.refreshEffects(now);
     const label = !connected
       ? "RECONNECTING"
       : state.phase === "lobby"
@@ -492,6 +571,7 @@ export class BombScene {
 
   destroy(): void {
     ++this.soundRevision;
+    this.setActive(false);
     this.resize.disconnect();
     this.motionButton.removeEventListener("click", this.toggleMotion);
     this.soundButton.removeEventListener("click", this.toggleSound);
