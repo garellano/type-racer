@@ -33,6 +33,7 @@ function element<E extends HTMLElement>(selector: string): E {
 const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8787";
 const entry = element<HTMLElement>("#entry");
 const game = element<HTMLElement>("#game");
+const roomLoading = element<HTMLElement>("#room-loading");
 const input = element<HTMLTextAreaElement>("#typing");
 const errorLabel = element<HTMLParagraphElement>("#error");
 const readyButton = element<HTMLButtonElement>("#ready");
@@ -104,45 +105,64 @@ async function enterRoom(
   body: { name: string; mode?: GameMode; characterId?: CharacterId } | { session: Session },
 ): Promise<void> {
   clearError();
-  const endpoint = roomId.success ? `/rooms/${roomId.data}/join` : "/rooms";
-  const response = await fetch(new URL(endpoint, apiUrl), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const payload: unknown = await response.json();
-  if (!response.ok) {
-    const message =
-      typeof payload === "object" &&
-      payload !== null &&
-      "error" in payload &&
-      typeof payload.error === "string"
-        ? payload.error
-        : "Could not enter this room.";
-    throw new Error(message);
-  }
-  const admission = admissionSchema.parse(payload);
-  session = admission.session;
-  sessionStorage.setItem(`type-racer:${admission.roomId}`, JSON.stringify(session));
-  location.hash = new URLSearchParams({ room: admission.roomId }).toString();
-  const invite = new URL(location.href);
-  element<HTMLInputElement>("#invite").value = invite.toString();
   entry.hidden = true;
-  game.hidden = false;
-  connection?.close();
-  connection = new RaceConnection(
-    apiUrl,
-    admission.roomId,
-    session,
-    receiveState,
-    (status) => {
-      element<HTMLElement>("#connection-label").textContent =
-        status[0]?.toUpperCase() + status.slice(1);
-      element<HTMLElement>("#connection-dot").dataset.status = status;
-    },
-    showError,
-  );
+  game.hidden = true;
+  roomLoading.hidden = false;
+  element("#room-loading-status").textContent = "Connecting to your team…";
+  try {
+    const endpoint = roomId.success ? `/rooms/${roomId.data}/join` : "/rooms";
+    const response = await fetch(new URL(endpoint, apiUrl), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const payload: unknown = await response.json();
+    if (!response.ok) {
+      const message =
+        typeof payload === "object" &&
+        payload !== null &&
+        "error" in payload &&
+        typeof payload.error === "string"
+          ? payload.error
+          : "Could not enter this room.";
+      throw new Error(message);
+    }
+    const admission = admissionSchema.parse(payload);
+    session = admission.session;
+    sessionStorage.setItem(`type-racer:${admission.roomId}`, JSON.stringify(session));
+    location.hash = new URLSearchParams({ room: admission.roomId }).toString();
+    const invite = new URL(location.href);
+    element<HTMLInputElement>("#invite").value = invite.toString();
+    connection?.close();
+    connection = new RaceConnection(
+      apiUrl,
+      admission.roomId,
+      session,
+      receiveState,
+      (status) => {
+        element<HTMLElement>("#connection-label").textContent =
+          status[0]?.toUpperCase() + status.slice(1);
+        element<HTMLElement>("#connection-dot").dataset.status = status;
+        if (status !== "connected") bombScene.pauseSound();
+        if (!roomLoading.hidden)
+          element("#room-loading-status").textContent =
+            status === "offline" || status === "reconnecting"
+              ? "Waiting for a connection. We'll try again shortly…"
+              : "Connecting to your team…";
+      },
+      showError,
+    );
+  } catch (error: unknown) {
+    roomLoading.hidden = true;
+    entry.hidden = false;
+    throw error;
+  }
 }
+
+element("#cancel-entry").addEventListener("click", () => {
+  connection?.close();
+  location.href = location.pathname;
+});
 
 element<HTMLFormElement>("#entry-form").addEventListener("submit", (event) => {
   event.preventDefault();
@@ -237,6 +257,9 @@ function receiveState(next: Snapshot): void {
     sendProgress();
   renderState();
   renderTyping();
+  // Reveal only a fully rendered, authenticated mode. Invitations never assume a race scene.
+  roomLoading.hidden = true;
+  game.hidden = false;
 }
 
 function renderState(): void {
@@ -248,6 +271,7 @@ function renderState(): void {
   const lobby = state.phase === "lobby";
   const bomb = state.mode === "bomb";
   element("#bomb-panel").hidden = !bomb;
+  bombScene.setActive(bomb);
   languageSelect.value = state.language;
   modeSelect.value = state.mode;
   modeSelect.disabled = !host || !lobby || connection?.status !== "connected";

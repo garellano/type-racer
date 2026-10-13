@@ -1,4 +1,5 @@
 import type { Snapshot } from "../shared/protocol";
+import { BombAudio } from "./bomb-audio";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const COLORS = [
@@ -61,9 +62,9 @@ export class BombScene {
   private feedback: string | null = null;
   private reduced = false;
   private sound = false;
-  private audio: AudioContext | undefined;
-  private lastSound = "";
-  private lastSecond = "";
+  private soundRevision = 0;
+  private readonly audio = new BombAudio();
+  private readonly soundHelp = node("p", "bomb-sound-help");
   private effectNow = 0;
   private effectMeasuredAt = performance.now();
   private connected = false;
@@ -83,7 +84,7 @@ export class BombScene {
     this.motionButton.type = this.soundButton.type = "button";
     this.motionButton.addEventListener("click", this.toggleMotion);
     this.soundButton.addEventListener("click", this.toggleSound);
-    this.soundButton.setAttribute("aria-pressed", "false");
+    this.renderSoundButton();
     controls.append(this.motionButton, this.soundButton, this.timer);
     header.append(heading, controls);
     this.status.setAttribute("role", "status");
@@ -91,86 +92,44 @@ export class BombScene {
     this.choices.setAttribute("role", "group");
     this.choices.setAttribute("aria-label", "Choose your cable");
     const body = svg("g", { class: "bomb-body" });
-    // Original vector artwork, authored for this game. No external images or references.
     body.append(
-      svg("ellipse", { cx: "500", cy: "350", rx: "114", ry: "25", fill: "#000", opacity: ".3" }),
-      svg("path", {
-        d: "M490 210 Q470 150 535 156 Q570 156 560 130",
-        fill: "none",
-        stroke: "#f7d38a",
-        "stroke-width": "9",
-        "stroke-linecap": "round",
-      }),
-      svg("circle", { cx: "560", cy: "126", r: "10", fill: "#ffd166", class: "bomb-spark" }),
-      svg("rect", {
-        x: "477",
-        y: "198",
-        width: "46",
-        height: "30",
-        rx: "8",
-        fill: "#758594",
-        transform: "rotate(-8 500 215)",
+      svg("image", {
+        href: `${import.meta.env.BASE_URL}art/bomb/bomb-v2.webp`,
+        x: "335",
+        y: "100",
+        width: "330",
+        height: "330",
+        class: "bomb-art",
       }),
       svg("circle", {
-        cx: "500",
-        cy: "280",
-        r: "96",
-        fill: "#263646",
-        stroke: "#8193a0",
-        "stroke-width": "3",
-      }),
-      svg("path", {
-        d: "M434 252 Q447 217 480 216",
-        fill: "none",
-        stroke: "#b3c2ce",
-        "stroke-width": "9",
-        "stroke-linecap": "round",
-        opacity: ".35",
-      }),
-      svg("rect", {
-        x: "448",
-        y: "247",
-        width: "104",
-        height: "47",
-        rx: "9",
-        fill: "#0d1725",
-        stroke: "#627284",
-        "stroke-width": "2",
+        cx: "582",
+        cy: "133",
+        r: "7",
+        fill: "#fff0a5",
+        class: "bomb-spark",
       }),
     );
     const display = svg("text", {
       x: "500",
-      y: "280",
+      y: "286",
       "text-anchor": "middle",
       fill: "#ffd166",
       class: "bomb-digital",
     });
     display.textContent = "? ? ?";
-    body.append(
-      display,
-      svg("rect", {
-        x: "458",
-        y: "307",
-        width: "84",
-        height: "37",
-        rx: "8",
-        fill: "#101d2a",
-        stroke: "#6d7b8a",
-        "stroke-width": "2",
-      }),
-    );
+    body.append(display);
     this.wiring.append(body, this.paths);
     this.wiring.setAttribute("preserveAspectRatio", "none");
-    const boom = node("div", "bomb-boom", "BOOM!");
+    const boom = node("div", "bomb-boom");
     boom.setAttribute("aria-hidden", "true");
-    const smoke = node("div", "bomb-smoke");
-    smoke.setAttribute("aria-hidden", "true");
-    for (let index = 0; index < 8; index++) {
-      const puff = node("i", "");
-      puff.style.setProperty("--i", String(index));
-      smoke.append(puff);
-    }
-    this.arena.append(this.wiring, this.players, smoke, boom);
+    const burst = node("img", "bomb-burst");
+    burst.src = `${import.meta.env.BASE_URL}art/bomb/boom-v2.webp`;
+    burst.alt = "";
+    burst.width = burst.height = 1280;
+    boom.append(burst, node("strong", "bomb-boom-label", "BOOM!"));
+    this.arena.append(this.wiring, this.players, boom);
+    this.soundHelp.hidden = true;
+    this.soundHelp.setAttribute("role", "status");
     const footer = node(
       "p",
       "bomb-fairness",
@@ -179,6 +138,7 @@ export class BombScene {
     root.append(
       header,
       this.status,
+      this.soundHelp,
       this.arena,
       this.announcement,
       this.choiceHelp,
@@ -204,6 +164,7 @@ export class BombScene {
     // Clear expired effects before resuming CSS animations after a hidden interval.
     this.refreshEffects(this.effectNow + performance.now() - this.effectMeasuredAt);
     this.root.dataset.hidden = String(document.hidden);
+    if (document.hidden) this.audio.pause();
   };
   private refreshEffects(now: number): void {
     this.effectNow = now;
@@ -229,30 +190,37 @@ export class BombScene {
     this.motionButton.setAttribute("aria-pressed", String(value));
   }
   private readonly toggleSound = () => {
-    this.sound = !this.sound;
-    if (this.sound) {
-      this.audio ??= new AudioContext();
-      void this.audio.resume().catch(() => {
-        this.sound = false;
-      });
-    }
+    const revision = ++this.soundRevision;
+    const requested = !this.sound;
+    this.sound = requested;
+    this.renderSoundButton();
+    this.soundHelp.hidden = true;
+    void this.audio.setEnabled(requested).then((enabled) => {
+      if (revision !== this.soundRevision) return;
+      this.sound = enabled;
+      this.renderSoundButton();
+      if (requested && !enabled) {
+        this.soundHelp.textContent =
+          "Sound could not start. Try again or check your browser's audio settings.";
+        this.soundHelp.hidden = false;
+      }
+    });
+  };
+  private renderSoundButton(): void {
     this.soundButton.textContent = this.sound ? "Sound on" : "Sound off";
     this.soundButton.setAttribute("aria-pressed", String(this.sound));
-  };
-  private tone(frequency: number, duration = 0.08): void {
-    if (!this.sound || !this.audio || document.hidden || !this.connected) return;
-    const oscillator = this.audio.createOscillator();
-    const gain = this.audio.createGain();
-    oscillator.frequency.value = frequency;
-    gain.gain.setValueAtTime(0.04, this.audio.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, this.audio.currentTime + duration);
-    oscillator.connect(gain).connect(this.audio.destination);
-    oscillator.onended = () => {
-      oscillator.disconnect();
-      gain.disconnect();
-    };
-    oscillator.start();
-    oscillator.stop(this.audio.currentTime + duration);
+    this.soundButton.setAttribute(
+      "aria-label",
+      this.sound ? "Turn suspense sound off" : "Turn suspense sound on",
+    );
+  }
+
+  setActive(active: boolean): void {
+    this.audio.setActive(active);
+  }
+
+  pauseSound(): void {
+    this.audio.pause();
   }
 
   reject(message: string): void {
@@ -270,11 +238,9 @@ export class BombScene {
     if (this.round !== state.raceId) {
       this.round = state.raceId;
       this.pending = null;
-      this.lastSound = "";
       this.feedback = null;
     }
     const height = Math.max(560, Math.ceil(state.players.length / 2) * 59 + 100);
-    const center = height / 2;
     this.arena.style.setProperty("--arena-ratio", `1000 / ${height}`);
     this.wiring.setAttribute("viewBox", `0 0 1000 ${height}`);
     this.referenceHeight = height;
@@ -371,26 +337,9 @@ export class BombScene {
         this.plugs.set(cable.id, plug);
       }
       path.setAttribute("stroke", COLORS[cable.id % COLORS.length]!);
-      const startX = 473 + (cable.id % 7) * 9;
-      const startY = center + 49;
-      const playerIndex = state.players.findIndex((player) => player.id === cable.playerId);
-      if (playerIndex < 0) {
-        const offset = ((cable.id * 17) % 65) - 32;
-        path.setAttribute(
-          "d",
-          `M${startX} ${startY} C${440 + offset} ${center + 110} ${565 - offset} ${center + 125} ${490 + offset} ${center + 67}`,
-        );
-      } else {
-        const left = playerIndex % 2 === 0;
-        const sideCount = Math.ceil((state.players.length - (left ? 0 : 1)) / 2);
-        const y = 65 + ((Math.floor(playerIndex / 2) + 0.5) / sideCount) * (height - 130);
-        path.setAttribute(
-          "d",
-          `M${startX} ${startY} C${left ? 360 : 640} ${center + 115} ${left ? 325 : 675} ${y} ${left ? 237 : 763} ${y}`,
-        );
-      }
       path.dataset.state = cable.cutAt !== null ? "cut" : cable.playerId ? "connected" : "tangled";
     }
+    this.positionWires();
     const cuts = cables.filter((cable) => cable.cutAt !== null).sort((a, b) => a.cutAt! - b.cutAt!);
     const last = cuts.at(-1);
     const saved = state.players.find((player) => player.id === last?.playerId);
@@ -419,10 +368,6 @@ export class BombScene {
           : "One wire per person. One shared result.",
     );
     this.refreshEffects(now);
-    if (last && now - last.cutAt! < 900 && this.lastSound !== `${state.raceId}:${last.id}`) {
-      this.lastSound = `${state.raceId}:${last.id}`;
-      this.tone(660, 0.13);
-    }
     this.refreshChoices();
   }
 
@@ -435,6 +380,40 @@ export class BombScene {
         "transform",
         `translate(500 ${this.referenceHeight / 2}) scale(${size} ${scaleY * size}) translate(-500 -280)`,
       );
+    this.positionWires();
+  }
+
+  private positionWires(): void {
+    const state = this.state;
+    if (!state) return;
+    const height = this.referenceHeight;
+    const center = height / 2;
+    const size = this.arenaWidth < 600 ? 1.4 : 1;
+    const scaleY = (this.arenaWidth * height) / (1000 * this.arenaHeight);
+    for (const cable of state.bomb?.cables ?? []) {
+      const path = this.wires.get(cable.id);
+      if (!path) continue;
+      const startX = 500 + (-14 + (cable.id % 7) * 4) * size;
+      const startY = center + 70 * scaleY * size;
+      const playerIndex = state.players.findIndex((player) => player.id === cable.playerId);
+      if (playerIndex < 0) {
+        const offset = ((cable.id * 17) % 38) - 19;
+        const lower = center + 90 * scaleY * size;
+        path.setAttribute(
+          "d",
+          `M${startX} ${startY} C${475 + offset} ${lower} ${525 - offset} ${lower} ${500 + offset} ${center + 68 * scaleY * size}`,
+        );
+      } else {
+        const left = playerIndex % 2 === 0;
+        const sideCount = Math.ceil((state.players.length - (left ? 0 : 1)) / 2);
+        const y = 65 + ((Math.floor(playerIndex / 2) + 0.5) / sideCount) * (height - 130);
+        const mobile = this.arenaWidth < 600;
+        path.setAttribute(
+          "d",
+          `M${startX} ${startY} C${left ? 360 : 640} ${center + 115 * scaleY * size} ${left ? 325 : 675} ${y} ${left ? (mobile ? 280 : 237) : mobile ? 720 : 763} ${y}`,
+        );
+      }
+    }
   }
 
   private refreshChoices(): void {
@@ -508,19 +487,16 @@ export class BombScene {
             : !this.connected
               ? "…"
               : String(seconds).padStart(2, "0");
-    const secondKey = `${state.raceId}:${state.phase}:${seconds}`;
-    if (secondKey !== this.lastSecond) {
-      this.lastSecond = secondKey;
-      if (state.phase === "countdown" && seconds > 0) this.tone(350);
-    }
+    this.audio.update(state, now, this.connected && !this.root.hidden);
   }
 
   destroy(): void {
+    ++this.soundRevision;
     this.resize.disconnect();
     this.motionButton.removeEventListener("click", this.toggleMotion);
     this.soundButton.removeEventListener("click", this.toggleSound);
     this.preference.removeEventListener("change", this.changePreference);
     document.removeEventListener("visibilitychange", this.changeVisibility);
-    void this.audio?.close();
+    this.audio.destroy();
   }
 }

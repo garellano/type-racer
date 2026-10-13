@@ -1,0 +1,29 @@
+{
+  "createJoinRestoreWithoutTrackFlash": true,
+  "audiblePCM": {
+    "toggleConfirmation": 0.030018,
+    "lobbySettles": 0,
+    "selection": 0.050327,
+    "muted": 0,
+    "unmuted": 0.067408,
+    "hidden": 0,
+    "visibleAgain": 0.06212,
+    "disconnected": 0,
+    "reconnected": 0.068695,
+    "countdown": 0.067366,
+    "defusing": 0.058481,
+    "finale": 0.063908,
+    "explosion": 0.03477,
+    "resultSettles": 0,
+    "finishedReturn": 0,
+    "otherMode": 0
+  },
+  "mutedAndPausedSilence": true,
+  "failedAudioFeedback": true,
+  "rapidSoundToggle": true,
+  "failedEntryCanRetry": true,
+  "wiresReachCards": true,
+  "mobileOverflow": false,
+  "burstLeavesNamesVisible": true,
+  "pageErrors": []
+}

@@ -42,7 +42,7 @@
             </label>
             <label class="mode-card">
               <input type="radio" name="mode" value="bomb" />
-              <span class="mode-art mode-bomb-art" aria-hidden="true">💣</span>
+              <span class="mode-art mode-bomb-art" aria-hidden="true"></span>
               <span
                 ><strong>Defuse the bomb</strong
                 ><small>One wire. A little suspense. Pure chance.</small></span
@@ -81,6 +81,10 @@
           <div class="road-line"></div>
           <span>FINISH ▦</span>
         </div>
+      </section>
+      <section id="room-loading" class="room-loading" hidden aria-label="Joining your team">
+        <p id="room-loading-status" role="status">Connecting to your team…</p>
+        <button id="cancel-entry" type="button" class="subtle">Back to games</button>
       </section>
       <section id="game" hidden>
         <div class="room-header">

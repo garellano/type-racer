@@ -495,3 +495,12 @@ footer {
     scroll-behavior: auto !important;
   }
 }
+
+.room-loading {
+  padding: 80px 20px;
+  text-align: center;
+}
+.room-loading p {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 24px;
+}
