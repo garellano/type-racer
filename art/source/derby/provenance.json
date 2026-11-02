@@ -1,0 +1,464 @@
+{
+  "title": "Office Derby seated propulsion animation sprites",
+  "version": 2,
+  "date": "2026-11-02",
+  "generator": "Built-in imagegen tool",
+  "status": "Approved game artwork prepared for Office Derby; publication is recorded separately.",
+  "purpose": "Four-phase seated chair-propulsion animation preserving all nine established team characters.",
+  "constraints": [
+    "Both legs and both feet remain in front of the hips and chair seat in every pose.",
+    "No backward-extending leg or standing/running anatomy.",
+    "Preserve established faces, hair, shirt colors and accessories; Kate and Devan both retain their glasses.",
+    "Same camera, character scale and chair-wheel baseline across each row.",
+    "Original alpha preserved; source PNGs copied without creative edits."
+  ],
+  "layout": {
+    "columns": 4,
+    "rows": 3,
+    "phases": ["neutral", "reach", "heel-pull", "recover"],
+    "rowsByAtlas": {
+      "a": ["Sam", "Gary", "Wil"],
+      "b": ["Kate", "Devan", "Gerardo"],
+      "c": ["Fabián", "Emanuel Medrano", "Arath"]
+    }
+  },
+  "runtimeOptimization": {
+    "tool": "cwebp",
+    "colorQuality": 82,
+    "alphaQuality": 100,
+    "method": 6,
+    "resize": [1024, 768],
+    "alphaEncoding": "Lossless alpha at resized runtime dimensions.",
+    "operation": "Format conversion and resizing only; no creative image edits."
+  },
+  "bboxAnalysis": {
+    "alphaThreshold": 128,
+    "connectivity": 4,
+    "islandFilter": "Ignore connected components smaller than max(12 pixels, 0.2% of largest component).",
+    "bboxCoordinates": "Cell-local [left, top, right-exclusive, bottom-exclusive].",
+    "imagesNotModified": true
+  },
+  "atlases": [
+    {
+      "id": "a",
+      "sourceOutput": "exec-dab79476-3935-4dee-88e7-4ce39a5cc0d8.png",
+      "originalPng": "art/source/derby/chair-a-v2.png",
+      "runtimeWebp": "public/assets/derby/chair-a-v2.webp",
+      "originalDimensions": [1448, 1086],
+      "runtimeDimensions": [1024, 768],
+      "originalBytes": 1522395,
+      "runtimeBytes": 180986,
+      "originalSha256": "1f3f4ee017534530dbea036940c49fceae01d1add87ee4bf8923b0ed5c659a4a",
+      "runtimeSha256": "0e6d0dfe98940e48c1f658db1ea7dc5ce1ba0952f32dbd709a958c2702a8173f",
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "character": "Sam",
+          "phase": "neutral",
+          "cellBounds": [0, 0, 362, 362],
+          "alphaBbox": [75, 11, 290, 348],
+          "significantOpaquePixels": 41503,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "character": "Sam",
+          "phase": "reach",
+          "cellBounds": [362, 0, 724, 362],
+          "alphaBbox": [72, 17, 324, 348],
+          "significantOpaquePixels": 43115,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 0,
+          "column": 2,
+          "character": "Sam",
+          "phase": "heel-pull",
+          "cellBounds": [724, 0, 1086, 362],
+          "alphaBbox": [69, 30, 295, 348],
+          "significantOpaquePixels": 43159,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 0,
+          "column": 3,
+          "character": "Sam",
+          "phase": "recover",
+          "cellBounds": [1086, 0, 1448, 362],
+          "alphaBbox": [69, 11, 304, 347],
+          "significantOpaquePixels": 41941,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "character": "Gary",
+          "phase": "neutral",
+          "cellBounds": [0, 362, 362, 724],
+          "alphaBbox": [73, 10, 290, 347],
+          "significantOpaquePixels": 43288,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 1,
+          "column": 1,
+          "character": "Gary",
+          "phase": "reach",
+          "cellBounds": [362, 362, 724, 724],
+          "alphaBbox": [69, 14, 325, 347],
+          "significantOpaquePixels": 44944,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "character": "Gary",
+          "phase": "heel-pull",
+          "cellBounds": [724, 362, 1086, 724],
+          "alphaBbox": [70, 29, 298, 347],
+          "significantOpaquePixels": 44729,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "character": "Gary",
+          "phase": "recover",
+          "cellBounds": [1086, 362, 1448, 724],
+          "alphaBbox": [69, 10, 304, 347],
+          "significantOpaquePixels": 43277,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 2,
+          "column": 0,
+          "character": "Wil",
+          "phase": "neutral",
+          "cellBounds": [0, 724, 362, 1086],
+          "alphaBbox": [72, 5, 290, 347],
+          "significantOpaquePixels": 43592,
+          "ignoredTinyComponents": 1
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "character": "Wil",
+          "phase": "reach",
+          "cellBounds": [362, 724, 724, 1086],
+          "alphaBbox": [69, 14, 328, 348],
+          "significantOpaquePixels": 45766,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "character": "Wil",
+          "phase": "heel-pull",
+          "cellBounds": [724, 724, 1086, 1086],
+          "alphaBbox": [70, 28, 301, 348],
+          "significantOpaquePixels": 45417,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "character": "Wil",
+          "phase": "recover",
+          "cellBounds": [1086, 724, 1448, 1086],
+          "alphaBbox": [69, 1, 304, 347],
+          "significantOpaquePixels": 44092,
+          "ignoredTinyComponents": 0
+        }
+      ]
+    },
+    {
+      "id": "b",
+      "sourceOutput": "exec-b245bf30-d6ba-4dc3-a81d-f8e533057f89.png",
+      "originalPng": "art/source/derby/chair-b-v2.png",
+      "runtimeWebp": "public/assets/derby/chair-b-v2.webp",
+      "originalDimensions": [1448, 1086],
+      "runtimeDimensions": [1024, 768],
+      "originalBytes": 1715938,
+      "runtimeBytes": 201204,
+      "originalSha256": "71f6dc0051b9885bdc5e610b14a923fc8024adc0927a0738605088085d36f40f",
+      "runtimeSha256": "25d36d6454b34cbb410fa144e728bb933965422f3ba27591b6496bf8445e75a9",
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "character": "Kate",
+          "phase": "neutral",
+          "cellBounds": [0, 0, 362, 362],
+          "alphaBbox": [73, 5, 307, 357],
+          "significantOpaquePixels": 52005,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "character": "Kate",
+          "phase": "reach",
+          "cellBounds": [362, 0, 724, 362],
+          "alphaBbox": [66, 14, 334, 357],
+          "significantOpaquePixels": 51207,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 0,
+          "column": 2,
+          "character": "Kate",
+          "phase": "heel-pull",
+          "cellBounds": [724, 0, 1086, 362],
+          "alphaBbox": [68, 22, 309, 357],
+          "significantOpaquePixels": 50729,
+          "ignoredTinyComponents": 1
+        },
+        {
+          "row": 0,
+          "column": 3,
+          "character": "Kate",
+          "phase": "recover",
+          "cellBounds": [1086, 0, 1448, 362],
+          "alphaBbox": [70, 6, 310, 357],
+          "significantOpaquePixels": 52085,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "character": "Devan",
+          "phase": "neutral",
+          "cellBounds": [0, 362, 362, 724],
+          "alphaBbox": [72, 6, 307, 357],
+          "significantOpaquePixels": 49793,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 1,
+          "column": 1,
+          "character": "Devan",
+          "phase": "reach",
+          "cellBounds": [362, 362, 724, 724],
+          "alphaBbox": [66, 16, 344, 357],
+          "significantOpaquePixels": 50091,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "character": "Devan",
+          "phase": "heel-pull",
+          "cellBounds": [724, 362, 1086, 724],
+          "alphaBbox": [67, 20, 313, 357],
+          "significantOpaquePixels": 49370,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "character": "Devan",
+          "phase": "recover",
+          "cellBounds": [1086, 362, 1448, 724],
+          "alphaBbox": [72, 4, 310, 357],
+          "significantOpaquePixels": 50582,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 2,
+          "column": 0,
+          "character": "Gerardo",
+          "phase": "neutral",
+          "cellBounds": [0, 724, 362, 1086],
+          "alphaBbox": [71, 3, 311, 356],
+          "significantOpaquePixels": 48463,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "character": "Gerardo",
+          "phase": "reach",
+          "cellBounds": [362, 724, 724, 1086],
+          "alphaBbox": [66, 16, 347, 356],
+          "significantOpaquePixels": 48696,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "character": "Gerardo",
+          "phase": "heel-pull",
+          "cellBounds": [724, 724, 1086, 1086],
+          "alphaBbox": [66, 22, 314, 356],
+          "significantOpaquePixels": 47694,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "character": "Gerardo",
+          "phase": "recover",
+          "cellBounds": [1086, 724, 1448, 1086],
+          "alphaBbox": [69, 1, 312, 356],
+          "significantOpaquePixels": 47790,
+          "ignoredTinyComponents": 0
+        }
+      ]
+    },
+    {
+      "id": "c",
+      "sourceOutput": "exec-401b7e94-2d24-47a6-b142-ad740d01b04f.png",
+      "originalPng": "art/source/derby/chair-c-v2.png",
+      "runtimeWebp": "public/assets/derby/chair-c-v2.webp",
+      "originalDimensions": [1448, 1086],
+      "runtimeDimensions": [1024, 768],
+      "originalBytes": 1534874,
+      "runtimeBytes": 180974,
+      "originalSha256": "e4b682a1575155d2ecbb558a41a7365006081eb1963d742e344d128de233b3ce",
+      "runtimeSha256": "bf91451ae23e584201c534f417b424919bbb22b2e309cd3562784044e7d194ec",
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "character": "Fabián",
+          "phase": "neutral",
+          "cellBounds": [0, 0, 362, 362],
+          "alphaBbox": [73, 8, 276, 350],
+          "significantOpaquePixels": 41825,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "character": "Fabián",
+          "phase": "reach",
+          "cellBounds": [362, 0, 724, 362],
+          "alphaBbox": [73, 15, 321, 350],
+          "significantOpaquePixels": 42675,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 0,
+          "column": 2,
+          "character": "Fabián",
+          "phase": "heel-pull",
+          "cellBounds": [724, 0, 1086, 362],
+          "alphaBbox": [73, 23, 293, 352],
+          "significantOpaquePixels": 42568,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 0,
+          "column": 3,
+          "character": "Fabián",
+          "phase": "recover",
+          "cellBounds": [1086, 0, 1448, 362],
+          "alphaBbox": [74, 6, 296, 350],
+          "significantOpaquePixels": 42460,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "character": "Emanuel Medrano",
+          "phase": "neutral",
+          "cellBounds": [0, 362, 362, 724],
+          "alphaBbox": [74, 10, 278, 351],
+          "significantOpaquePixels": 41425,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 1,
+          "column": 1,
+          "character": "Emanuel Medrano",
+          "phase": "reach",
+          "cellBounds": [362, 362, 724, 724],
+          "alphaBbox": [73, 18, 329, 351],
+          "significantOpaquePixels": 43081,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "character": "Emanuel Medrano",
+          "phase": "heel-pull",
+          "cellBounds": [724, 362, 1086, 724],
+          "alphaBbox": [73, 27, 295, 353],
+          "significantOpaquePixels": 42632,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "character": "Emanuel Medrano",
+          "phase": "recover",
+          "cellBounds": [1086, 362, 1448, 724],
+          "alphaBbox": [74, 8, 296, 350],
+          "significantOpaquePixels": 42152,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 2,
+          "column": 0,
+          "character": "Arath",
+          "phase": "neutral",
+          "cellBounds": [0, 724, 362, 1086],
+          "alphaBbox": [74, 7, 279, 351],
+          "significantOpaquePixels": 44581,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "character": "Arath",
+          "phase": "reach",
+          "cellBounds": [362, 724, 724, 1086],
+          "alphaBbox": [73, 14, 327, 350],
+          "significantOpaquePixels": 45429,
+          "ignoredTinyComponents": 1
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "character": "Arath",
+          "phase": "heel-pull",
+          "cellBounds": [724, 724, 1086, 1086],
+          "alphaBbox": [74, 22, 293, 351],
+          "significantOpaquePixels": 45100,
+          "ignoredTinyComponents": 0
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "character": "Arath",
+          "phase": "recover",
+          "cellBounds": [1086, 724, 1448, 1086],
+          "alphaBbox": [74, 6, 296, 350],
+          "significantOpaquePixels": 45412,
+          "ignoredTinyComponents": 2
+        }
+      ]
+    }
+  ],
+  "combinedRuntimeBytes": 563164,
+  "sourcePolicy": "References are existing generated team sprite sheets. Original private photo references are not included.",
+  "existingCharacterReferences": {
+    "a": [
+      "public/assets/sacks/sunbeam-team.webp",
+      "public/assets/sacks/scout-team.webp",
+      "public/assets/sacks/clover-team.webp"
+    ],
+    "b": [
+      "public/assets/sacks/juno-team.webp",
+      "public/assets/sacks/ember-team.webp",
+      "public/assets/sacks/sol-team.webp"
+    ],
+    "c": [
+      "public/assets/sacks/rio-team.webp",
+      "public/assets/sacks/moss-team.webp",
+      "public/assets/sacks/orbit-team.webp"
+    ]
+  }
+}

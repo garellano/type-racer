@@ -1,0 +1,506 @@
+.derby-game {
+  --derby-lane-size: 66px;
+  --derby-chair-size: 70px;
+  --derby-inset: 39px;
+  padding-top: 30px;
+}
+.derby-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+.derby-title {
+  margin: 4px 0 8px;
+  font-size: clamp(32px, 4vw, 48px);
+  line-height: 1.05;
+  letter-spacing: -2px;
+}
+.derby-intro {
+  margin: 0;
+  color: #657568;
+  max-width: 620px;
+  line-height: 1.5;
+}
+.derby-back {
+  white-space: nowrap;
+  margin-top: 14px;
+}
+.derby-setup {
+  margin-bottom: 18px;
+  border: 1px solid #d5ddd0;
+  border-radius: 10px;
+  background: #fffef7;
+}
+.derby-setup-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 16px 20px;
+  cursor: pointer;
+}
+.derby-setup-summary::before {
+  content: "+";
+  color: #52744d;
+  font-weight: 700;
+  margin-right: 8px;
+}
+.derby-setup[open] > .derby-setup-summary::before {
+  content: "−";
+}
+.derby-setup-title {
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  margin-right: auto;
+}
+.derby-count {
+  color: #657568;
+  font-size: 12px;
+  align-self: center;
+}
+.derby-setup-fields {
+  margin: 0;
+  padding: 0 18px 18px;
+  min-width: 0;
+  border: 0;
+}
+.derby-roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.derby-seat {
+  position: relative;
+  min-width: 0;
+  border: 1px solid #dce2d5;
+  border-radius: 8px;
+  background: #f5f5eb;
+  padding: 8px;
+}
+.derby-seat[data-selected="true"] {
+  background: #edf2df;
+  border-color: #93aa7a;
+}
+.derby-seat-label {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  margin: 0 0 8px;
+  cursor: pointer;
+}
+.derby-seat-check {
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  margin: 0;
+  accent-color: #365e3a;
+}
+.derby-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-size: 400% 300%;
+  background-repeat: no-repeat;
+}
+.derby-seat-portrait {
+  width: 88px;
+  height: 88px;
+  justify-self: center;
+}
+.derby-seat-name {
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+  text-align: center;
+  font-size: 13px;
+  margin-top: 3px;
+}
+.derby-character-select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 7px 6px;
+  font-size: 11px;
+  font-weight: 400;
+}
+.derby-remove {
+  display: block;
+  padding: 5px 8px;
+  margin: 7px auto 0;
+  font-size: 11px;
+}
+.derby-add {
+  margin-top: 18px;
+}
+.derby-add-label {
+  margin: 0 0 7px;
+}
+.derby-add-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 540px;
+}
+.derby-new-name {
+  min-width: 0;
+  flex: 1 1 180px;
+}
+.derby-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 0;
+}
+.derby-timing {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-right: auto;
+}
+.derby-time-label {
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #657568;
+}
+.derby-clock {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.derby-motion {
+  padding: 10px 12px;
+  font-size: 12px;
+}
+.derby-motion[aria-pressed="true"] {
+  background: #e7edda;
+  border-color: #769461;
+}
+.derby-start {
+  min-width: 150px;
+}
+.derby-status {
+  min-height: 22px;
+  margin: 12px 0;
+  font-size: 13px;
+  color: #526a56;
+}
+.derby-notice {
+  margin: 0 0 18px;
+  padding: 12px 16px;
+  background: #fff0d1;
+  border-radius: 8px;
+  color: #775016;
+  line-height: 1.5;
+}
+.derby-scene {
+  overflow: hidden;
+  border: 1px solid #c5d2be;
+  border-radius: 12px;
+  background: #e3ead8;
+}
+.derby-scene-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: #214438;
+  color: #f4f4db;
+  padding: 12px 18px;
+}
+.derby-office-sign {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.derby-course-label {
+  font-size: 9px;
+  letter-spacing: 2px;
+  opacity: 0.7;
+}
+.derby-scene-clock {
+  margin-left: auto;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.derby-course-caption {
+  display: flex;
+  justify-content: space-between;
+  padding: 9px calc(var(--derby-inset) - 2px) 7px calc(138px + var(--derby-inset));
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #5a7154;
+}
+.derby-field {
+  padding-bottom: 6px;
+}
+.derby-lane {
+  display: grid;
+  grid-template-columns: 124px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-height: var(--derby-lane-size);
+  padding-left: 16px;
+}
+.derby-racer-name {
+  font-size: 12px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  padding-right: 4px;
+}
+.derby-track {
+  position: relative;
+  height: var(--derby-lane-size);
+  background: #e9dfc6;
+  border-bottom: 1px solid #cfc5ad;
+}
+.derby-lane:nth-child(even) .derby-track {
+  background: #e4d8bc;
+}
+.derby-track::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  height: 1px;
+  left: 0;
+  right: 0;
+  background: #d9ccb0;
+}
+.derby-runway {
+  position: absolute;
+  inset: 0 var(--derby-inset);
+}
+.derby-marker {
+  position: absolute;
+  left: 0;
+  bottom: 1px;
+  width: var(--derby-chair-size);
+  height: var(--derby-chair-size);
+  transform: translateX(-50%);
+}
+.derby-finish-line {
+  position: absolute;
+  z-index: 0;
+  width: 6px;
+  top: 0;
+  bottom: 0;
+  right: calc(var(--derby-inset) - 3px);
+  background: repeating-conic-gradient(#355044 0 25%, #f3f2df 0 50%) 0 0 / 6px 6px;
+  opacity: 0.65;
+}
+.derby-lane[data-winner="true"] .derby-track {
+  background: #c8deb0;
+}
+.derby-lane[data-winner="true"] .derby-racer-name::after {
+  content: " ▦";
+  color: #52783c;
+}
+.derby-results {
+  margin-top: 18px;
+  border: 1px solid #9bb383;
+  background: #e9f0d9;
+  border-radius: 12px;
+  padding: 18px 24px;
+}
+.derby-winner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+}
+.derby-winner-portrait {
+  width: 138px;
+  height: 138px;
+  flex-shrink: 0;
+}
+.derby-winner-copy h2 {
+  font-size: clamp(23px, 3vw, 34px);
+  letter-spacing: -1px;
+  margin: 6px 0 10px;
+  overflow-wrap: anywhere;
+}
+.derby-winner-copy > p:last-child {
+  margin: 0;
+  color: #526a44;
+  line-height: 1.5;
+}
+.derby-winner-flag {
+  font-size: 50px;
+  margin-left: auto;
+  color: #547039;
+  transform: rotate(-10deg);
+}
+.derby-game[data-celebrate="true"] .derby-winner-flag {
+  animation: derby-flag-wave 0.42s ease-in-out 6 alternate;
+}
+.derby-final-standings {
+  border-top: 1px solid #c4d0b0;
+  padding-top: 14px;
+  margin-top: 12px;
+}
+.derby-final-standings summary {
+  font-size: 12px;
+  cursor: pointer;
+}
+.derby-final-list {
+  padding-left: 26px;
+  margin-bottom: 0;
+}
+.derby-final-list li {
+  padding: 8px 0;
+  font-size: 12px;
+}
+.derby-final-list li > span:last-child {
+  float: right;
+  margin-left: 12px;
+  color: #59724b;
+}
+.derby-local-note {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #71806c;
+  text-align: center;
+  margin: 16px 0;
+}
+.derby-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+@keyframes derby-flag-wave {
+  from {
+    transform: rotate(-10deg);
+  }
+  to {
+    transform: rotate(13deg);
+  }
+}
+@media (max-width: 700px) {
+  .derby-game {
+    --derby-lane-size: 70px;
+    --derby-chair-size: 72px;
+    --derby-inset: 39px;
+    padding-top: 24px;
+  }
+  .derby-heading {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .derby-back {
+    margin-top: 0;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  .derby-intro {
+    font-size: 14px;
+  }
+  .derby-roster {
+    grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+  }
+  .derby-setup-fields {
+    padding: 0 10px 12px;
+  }
+  .derby-setup-summary {
+    padding: 14px 12px;
+  }
+  .derby-toolbar {
+    gap: 10px;
+  }
+  .derby-timing {
+    flex-basis: 100%;
+  }
+  .derby-start {
+    margin-left: auto;
+  }
+  .derby-time-label {
+    font-size: 9px;
+  }
+  .derby-lane {
+    grid-template-columns: 86px minmax(0, 1fr);
+    gap: 6px;
+    padding-left: 10px;
+  }
+  .derby-racer-name {
+    font-size: 11px;
+  }
+  .derby-course-caption {
+    padding-left: calc(102px + var(--derby-inset));
+  }
+  .derby-course-label {
+    display: none;
+  }
+  .derby-scene-header {
+    padding: 11px 12px;
+  }
+  .derby-winner {
+    gap: 8px;
+    align-items: center;
+  }
+  .derby-winner-portrait {
+    width: 98px;
+    height: 98px;
+  }
+  .derby-results {
+    padding: 14px 12px;
+  }
+  .derby-winner-flag {
+    display: none;
+  }
+  .derby-winner-copy > p:last-child {
+    font-size: 12px;
+  }
+}
+@media (max-width: 380px) {
+  .derby-office-sign {
+    display: none;
+  }
+  .derby-scene-clock {
+    margin-left: 0;
+  }
+  .derby-roster {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .derby-character-select {
+    font-size: 10px;
+  }
+  .derby-motion {
+    padding: 10px 8px;
+    font-size: 11px;
+  }
+  .derby-start {
+    min-width: 0;
+    padding: 11px 12px;
+    font-size: 12px;
+  }
+  .derby-game {
+    --derby-chair-size: 64px;
+    --derby-inset: 35px;
+  }
+  .derby-lane {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+  .derby-course-caption {
+    padding-left: calc(88px + var(--derby-inset));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .derby-game .derby-winner-flag {
+    animation: none !important;
+  }
+}
+.derby-game[data-reduced-motion="true"] .derby-winner-flag {
+  animation: none !important;
+}

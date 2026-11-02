@@ -4,24 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#132b28" />
-    <meta
-      name="description"
-      content="A quick multiplayer typing race to start your team's standup."
-    />
+    <meta name="description" content="Quick team games to choose who starts your standup." />
     <title>Type Racer — race into standup</title>
   </head>
   <body>
     <main class="app">
       <header class="masthead">
         <a class="brand" href="#">TYPE<span>RACER</span><span class="brand-mark">↗</span></a
-        ><span class="prototype">The standup circuit · v0.6.2</span>
+        ><span class="prototype">The standup circuit · v0.7.0</span>
       </header>
       <section id="entry" class="entry">
         <p class="eyebrow">A little competition. A better morning.</p>
         <h1>A little race.<br /><span>A shared start.</span></h1>
         <p class="intro">
-          Grab a lane, invite your team, and type your way to the finish line. Celebrate the flag,
-          then let the final race position open our standup. One shared start. Every voice matters.
+          Pick a typing race, a little suspense, or an automatic chair derby. One playful moment to
+          choose who opens standup. Every voice matters.
         </p>
         <form id="entry-form">
           <fieldset id="entry-mode" class="mode-choice">
@@ -48,8 +45,16 @@
                 ><small>One wire. A little suspense. Pure chance.</small></span
               >
             </label>
+            <label class="mode-card">
+              <input type="radio" name="mode" value="derby" />
+              <span class="mode-art mode-derby-art" aria-hidden="true"></span>
+              <span
+                ><strong>Office Derby</strong
+                ><small>Pick the team. The chairs race themselves.</small></span
+              >
+            </label>
           </fieldset>
-          <label for="name">Your name</label>
+          <label id="entry-name-label" for="name">Your name</label>
           <div class="entry-controls">
             <input
               id="name"
@@ -60,6 +65,9 @@
               autocomplete="nickname"
             /><button id="enter" type="submit">Create a room ↗</button>
           </div>
+          <p id="entry-derby-help" class="intro" hidden>
+            You choose who's here and run the race. Everyone else watches your shared screen.
+          </p>
           <div id="entry-character-choice" class="character-choice" hidden>
             <p class="picker-label">
               Meet your hopping crew <span>Choose any character you like.</span>
@@ -73,7 +81,7 @@
           </div>
         </form>
         <div class="entry-notes">
-          <span>2–9 racers · up to 25 on the bomb</span><span>~1 minute</span
+          <span>2–9 typists · up to 25 on chance games</span><span>Under a minute</span
           ><span>No account needed</span>
         </div>
         <div class="entry-road" aria-hidden="true">
@@ -82,6 +90,7 @@
           <span>FINISH ▦</span>
         </div>
       </section>
+      <section id="derby-game" hidden aria-label="Office Derby"></section>
       <section id="room-loading" class="room-loading" hidden aria-label="Joining your team">
         <p id="room-loading-status" role="status">Connecting to your team…</p>
         <button id="cancel-entry" type="button" class="subtle">Back to games</button>

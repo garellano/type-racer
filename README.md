@@ -1,8 +1,14 @@
 # Type Racer
 
-A short multiplayer typing race to choose who starts the daily standup.
+A collection of short team games to choose who starts the daily standup.
 
 **[Play Type Racer](https://garellano.github.io/type-racer/)** · [Product concept](docs/concept.md) · [Multiplayer design](docs/multiplayer.md) · [Validation guide](docs/validation.md)
+
+## Office Derby
+
+**[Play Office Derby](https://garellano.github.io/type-racer/#game=derby)** for an automatic office-chair race with **2–25 participants**. The host selects today's team, chooses any of the nine established characters for each person, and shares their screen. Nobody else needs to open a link, join a room, or interact. A three-second countdown leads into an 18-second race; **the winner opens standup**.
+
+The nine characters keep their familiar faces, shirt colors, and accessories, including glasses for both Kate and Devan. Four illustrated poses animate a seated scooting stride with both legs always in front of the chair. Every selected participant has an equal chance; a cryptographic draw fixes the winner before animation begins. The roster is saved in this browser, and refreshing the same tab recovers the frozen round and result until its two-hour expiry. Office Derby runs locally in the host's browser and adds no Worker, account, or paid service. Read [game rules and practical limits](docs/derby.md) and [artwork provenance and exact prompts](docs/derby-art.md).
 
 ## Defuse the bomb
 
