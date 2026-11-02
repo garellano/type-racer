@@ -23,6 +23,7 @@ import { RaceConnection } from "./connection";
 import { RaceScene } from "./race-scene";
 import { renderResults } from "./results";
 import { BombScene } from "./bomb-scene";
+import type { DerbyGame } from "./derby-game";
 
 function element<E extends HTMLElement>(selector: string): E {
   const result = document.querySelector<E>(selector);
@@ -42,7 +43,9 @@ const resetButton = element<HTMLButtonElement>("#reset");
 const leaveButton = element<HTMLButtonElement>("#leave");
 const languageSelect = element<HTMLSelectElement>("#language");
 const modeSelect = element<HTMLSelectElement>("#mode");
-let entryMode: GameMode = "cars";
+const derbyRoot = element<HTMLElement>("#derby-game");
+let derbyGame: DerbyGame | undefined;
+let entryMode: GameMode | "derby" = "cars";
 let entryCharacter: CharacterId = "sunbeam";
 let characterPicked = false;
 const entryPicker = new CharacterPicker(element("#entry-characters"), (id) => {
@@ -57,8 +60,16 @@ const lobbyPicker = new CharacterPicker(element("#lobby-characters"), (id) => {
 entryPicker.render(entryCharacter, true);
 element("#entry-mode").addEventListener("change", (event) => {
   if (!(event.target instanceof HTMLInputElement)) return;
-  entryMode = gameModeSchema.parse(event.target.value);
+  entryMode = event.target.value === "derby" ? "derby" : gameModeSchema.parse(event.target.value);
   element("#entry-character-choice").hidden = entryMode !== "sacks";
+  const derby = entryMode === "derby";
+  element<HTMLInputElement>("#name").hidden = derby;
+  element<HTMLInputElement>("#name").required = !derby;
+  element("#entry-name-label").hidden = derby;
+  element("#entry-derby-help").hidden = !derby;
+  element<HTMLButtonElement>("#enter").textContent = derby
+    ? "Open Office Derby ↗"
+    : "Create a room ↗";
 });
 element<HTMLInputElement>("#name").addEventListener("input", (event) => {
   if (characterPicked || !(event.target instanceof HTMLInputElement)) return;
@@ -71,7 +82,9 @@ const bombScene = new BombScene(element("#bomb-panel"), (cableId) => {
   return !!state?.raceId && !!connection?.send({ type: "wire", raceId: state.raceId, cableId });
 });
 const passage = element<HTMLElement>("#passage");
-const requestedRoom = new URLSearchParams(location.hash.slice(1)).get("room");
+const locationOptions = new URLSearchParams(location.hash.slice(1));
+const requestedRoom = locationOptions.get("room");
+const requestedDerby = locationOptions.get("game") === "derby" && !requestedRoom;
 const roomId = roomIdSchema.safeParse(requestedRoom);
 let connection: RaceConnection | undefined;
 let session: Session | undefined;
@@ -90,6 +103,38 @@ function showError(message: string): void {
 function clearError(): void {
   errorLabel.hidden = true;
   errorLabel.textContent = "";
+}
+
+async function openDerby(): Promise<void> {
+  clearError();
+  entry.hidden = true;
+  game.hidden = true;
+  roomLoading.hidden = true;
+  derbyRoot.hidden = false;
+  connection?.close();
+  location.hash = new URLSearchParams({ game: "derby" }).toString();
+  try {
+    if (!derbyGame) {
+      derbyRoot.textContent = "Getting the chairs ready…";
+      const { DerbyGame } = await import("./derby-game");
+      derbyGame = new DerbyGame(derbyRoot, () => {
+        derbyGame?.destroy();
+        derbyGame = undefined;
+        location.hash = "";
+        location.reload();
+      });
+    }
+    derbyGame.show();
+    clearInterval(clockTimer);
+    if (progressTimer !== undefined) clearTimeout(progressTimer);
+    scene.destroy();
+    bombScene.destroy();
+  } catch (error: unknown) {
+    derbyRoot.hidden = true;
+    entry.hidden = false;
+    location.hash = "";
+    showError(error instanceof Error ? error.message : "Could not open Office Derby. Try again.");
+  }
 }
 
 if (requestedRoom && !roomId.success)
@@ -166,12 +211,19 @@ element("#cancel-entry").addEventListener("click", () => {
 
 element<HTMLFormElement>("#entry-form").addEventListener("submit", (event) => {
   event.preventDefault();
+  if (entryMode === "derby" && !roomId.success) {
+    void openDerby();
+    return;
+  }
   const button = element<HTMLButtonElement>("#enter");
   button.disabled = true;
   enterRoom({
     name: element<HTMLInputElement>("#name").value.trim(),
     ...(!roomId.success
-      ? { mode: entryMode, ...(entryMode === "sacks" ? { characterId: entryCharacter } : {}) }
+      ? {
+          mode: entryMode === "derby" ? "cars" : entryMode,
+          ...(entryMode === "sacks" ? { characterId: entryCharacter } : {}),
+        }
       : {}),
   })
     .catch((error: unknown) =>
@@ -468,9 +520,18 @@ window.addEventListener("pagehide", () => {
   connection?.close();
   scene.destroy();
   bombScene.destroy();
+  derbyGame?.destroy();
+});
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) location.reload();
+});
+window.addEventListener("hashchange", () => {
+  if (derbyGame && new URLSearchParams(location.hash.slice(1)).get("game") !== "derby")
+    location.reload();
 });
 
-if (roomId.success) {
+if (requestedDerby) void openDerby();
+else if (roomId.success) {
   const saved = sessionStorage.getItem(`type-racer:${roomId.data}`);
   if (saved) {
     try {

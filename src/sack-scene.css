@@ -1,6 +1,6 @@
 .mode-choice {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   padding: 0;
   margin: 24px 0;
@@ -54,6 +54,9 @@
 }
 .mode-sack-art {
   background: url("/assets/sacks/juno-team.webp") 0 0 / 300% 200% no-repeat;
+}
+.mode-derby-art {
+  background: url("/assets/derby/chair-a-v2.webp") 0 0 / 400% 300% no-repeat;
 }
 .character-choice {
   margin: 22px 0;
