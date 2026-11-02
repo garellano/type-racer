@@ -40,7 +40,15 @@ const stateSchema = snapshotSchema.omit({ serverNow: true, players: true }).exte
     .default(null),
 });
 type RoomState = z.infer<typeof stateSchema>;
-const attachmentSchema = z.object({ playerId: z.uuid().nullable() });
+const AUTHENTICATION_TIMEOUT_MS = 10000;
+const MESSAGE_BURST = 40;
+const MESSAGES_PER_SECOND = 20;
+const attachmentSchema = z.object({
+  playerId: z.uuid().nullable(),
+  authenticateBy: z.number().finite().default(0),
+  messageTokens: z.number().finite().min(0).max(MESSAGE_BURST).default(MESSAGE_BURST),
+  tokenTime: z.number().finite().default(0),
+});
 
 async function hashSecret(secret: string): Promise<string> {
   const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret));
@@ -66,16 +74,20 @@ export class RoomError extends Error {
 export class RaceRoom extends DurableObject<CloudflareBindings> {
   private broadcastTimer: ReturnType<typeof setTimeout> | undefined;
   private expired = false;
+  private hasRoomTable: boolean;
 
   constructor(ctx: DurableObjectState, env: CloudflareBindings) {
     super(ctx, env);
-    this.ctx.storage.sql.exec(
-      "CREATE TABLE IF NOT EXISTS room (id INTEGER PRIMARY KEY CHECK (id = 1), value TEXT NOT NULL)",
-    );
+    // Unknown room IDs must not create durable databases that have no expiry alarm.
+    this.hasRoomTable =
+      this.ctx.storage.sql
+        .exec("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'room'")
+        .toArray().length > 0;
   }
 
   private load(): RoomState {
     if (this.expired) throw new RoomError(410, "This room has expired. Create a new room.");
+    if (!this.hasRoomTable) throw new RoomError(404, "This room has expired or does not exist.");
     const row = this.ctx.storage.sql
       .exec<{ value: string }>("SELECT value FROM room WHERE id = 1")
       .toArray()[0];
@@ -187,6 +199,20 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
     return parsed.success ? parsed.data.playerId : null;
   }
 
+  private pendingSockets(): WebSocket[] {
+    return this.ctx
+      .getWebSockets()
+      .filter((socket) => socket.readyState === WebSocket.OPEN && !this.playerId(socket));
+  }
+
+  private closeUnauthenticated(now: number): void {
+    for (const socket of this.pendingSockets()) {
+      const attachment = attachmentSchema.safeParse(socket.deserializeAttachment());
+      if (!attachment.success || now >= attachment.data.authenticateBy)
+        socket.close(1008, "Authentication timed out.");
+    }
+  }
+
   private snapshot(state = this.load()): Snapshot {
     const { passageDay: _day, passageHistory: _history, bombPlan: _plan, ...publicState } = state;
     return {
@@ -240,7 +266,13 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
           : state.phase === "racing"
             ? state.deadline
             : null;
-    await this.ctx.storage.setAlarm(Math.min(next ?? state.expiresAt, state.expiresAt));
+    const authenticationDeadline = this.pendingSockets().reduce((earliest, socket) => {
+      const attachment = attachmentSchema.safeParse(socket.deserializeAttachment());
+      return Math.min(earliest, attachment.success ? attachment.data.authenticateBy : 0);
+    }, state.expiresAt);
+    await this.ctx.storage.setAlarm(
+      Math.min(next ?? state.expiresAt, state.expiresAt, authenticationDeadline),
+    );
   }
 
   async create(
@@ -251,7 +283,7 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
   ): Promise<Admission> {
     const session = { playerId: crypto.randomUUID(), secret: crypto.randomUUID() };
     const secretHash = await hashSecret(session.secret);
-    if (this.ctx.storage.sql.exec("SELECT id FROM room").toArray().length)
+    if (this.hasRoomTable && this.ctx.storage.sql.exec("SELECT id FROM room").toArray().length)
       throw new RoomError(409, "Room already exists.");
     const state: RoomState = {
       roomId,
@@ -286,6 +318,10 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
         },
       ],
     };
+    this.ctx.storage.sql.exec(
+      "CREATE TABLE IF NOT EXISTS room (id INTEGER PRIMARY KEY CHECK (id = 1), value TEXT NOT NULL)",
+    );
+    this.hasRoomTable = true;
     this.commit(state);
     await this.scheduleAlarm();
     return { roomId, session };
@@ -340,19 +376,67 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
     this.load();
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket")
       return new Response("WebSocket upgrade required.", { status: 426 });
+    const now = Date.now();
+    this.closeUnauthenticated(now);
+    const pending = this.pendingSockets();
+    if (pending.length >= MAX_BOMB_PLAYERS) {
+      // Pending handshakes cannot reserve every connection until room expiry.
+      pending.sort((left, right) => {
+        const leftDeadline = attachmentSchema.parse(left.deserializeAttachment()).authenticateBy;
+        const rightDeadline = attachmentSchema.parse(right.deserializeAttachment()).authenticateBy;
+        return leftDeadline - rightDeadline;
+      });
+      pending[0]?.close(1008, "Authentication required.");
+    }
+    // Include CLOSING sockets: a hostile peer can ignore the close handshake.
     if (this.ctx.getWebSockets().length >= MAX_BOMB_PLAYERS * 2)
       return new Response("Too many connections.", { status: 429 });
     const pair = new WebSocketPair();
     const client = pair[0];
     const server = pair[1];
     this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ playerId: null });
+    server.serializeAttachment({
+      playerId: null,
+      authenticateBy: now + AUTHENTICATION_TIMEOUT_MS,
+      messageTokens: MESSAGE_BURST,
+      tokenTime: now,
+    });
+    await this.scheduleAlarm();
     return new Response(null, { status: 101, webSocket: client });
   }
 
   async webSocketMessage(socket: WebSocket, raw: string | ArrayBuffer): Promise<void> {
     try {
-      if (typeof raw !== "string" || new TextEncoder().encode(raw).length > MAX_MESSAGE_BYTES) {
+      if (socket.readyState !== WebSocket.OPEN) return;
+      const attachment = attachmentSchema.parse(socket.deserializeAttachment());
+      const receivedAt = Date.now();
+      if (!attachment.playerId && receivedAt >= attachment.authenticateBy) {
+        socket.close(1008, "Authentication timed out.");
+        return;
+      }
+      attachment.messageTokens = Math.min(
+        MESSAGE_BURST,
+        attachment.messageTokens +
+          (Math.max(0, receivedAt - attachment.tokenTime) * MESSAGES_PER_SECOND) / 1000,
+      );
+      if (attachment.messageTokens < 1) {
+        this.send(socket, {
+          type: "error",
+          code: "429",
+          message: "Too many messages. Reload to reconnect.",
+        });
+        socket.close(1008, "Message rate exceeded.");
+        return;
+      }
+      attachment.messageTokens--;
+      attachment.tokenTime = receivedAt;
+      // Attachments retain the budget across hibernation without a database write per ping.
+      socket.serializeAttachment(attachment);
+      if (
+        typeof raw !== "string" ||
+        raw.length > MAX_MESSAGE_BYTES ||
+        new TextEncoder().encode(raw).length > MAX_MESSAGE_BYTES
+      ) {
         socket.close(1009, "Message too large.");
         return;
       }
@@ -364,18 +448,26 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
         const state = this.load();
         if (!state.players.some((player) => player.id === message.session.playerId))
           throw new RoomError(403, "Player has left the room.");
+        if (socket.readyState !== WebSocket.OPEN) return;
         for (const previous of this.ctx.getWebSockets()) {
           if (previous !== socket && this.playerId(previous) === message.session.playerId) {
+            const previousAttachment = attachmentSchema.parse(previous.deserializeAttachment());
+            attachment.messageTokens = Math.min(
+              attachment.messageTokens,
+              previousAttachment.messageTokens +
+                (Math.max(0, receivedAt - previousAttachment.tokenTime) * MESSAGES_PER_SECOND) /
+                  1000,
+            );
             previous.serializeAttachment({ playerId: null });
             previous.close(4001, "Session connected elsewhere.");
           }
         }
-        socket.serializeAttachment({ playerId: message.session.playerId });
+        socket.serializeAttachment({ ...attachment, playerId: message.session.playerId });
         if (this.advanceBomb(state, Date.now())) {
           this.commit(state);
-          this.ctx.waitUntil(this.scheduleAlarm());
         }
         this.broadcast();
+        this.ctx.waitUntil(this.scheduleAlarm());
         return;
       }
       const playerId = this.playerId(socket);
@@ -451,6 +543,7 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
       if (message.type === "ready") {
         if (state.phase !== "lobby")
           throw new RoomError(409, "Readiness can only change in the lobby.");
+        if (player.ready === message.ready) return;
         player.ready = message.ready;
         this.commit(state);
         this.broadcast();
@@ -601,18 +694,21 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
   }
 
   webSocketClose(socket: WebSocket, code: number): void {
+    const wasAuthenticated = this.playerId(socket) !== null;
     socket.close(code);
     socket.serializeAttachment({ playerId: null });
-    this.broadcast();
+    if (wasAuthenticated) this.broadcast();
   }
 
   webSocketError(socket: WebSocket): void {
+    const wasAuthenticated = this.playerId(socket) !== null;
     socket.serializeAttachment({ playerId: null });
     socket.close(1011, "Connection failed.");
-    this.broadcast();
+    if (wasAuthenticated) this.broadcast();
   }
 
   async alarm(): Promise<void> {
+    if (!this.hasRoomTable) return;
     const row = this.ctx.storage.sql
       .exec<{ value: string }>("SELECT value FROM room WHERE id = 1")
       .toArray()[0];
@@ -625,8 +721,10 @@ export class RaceRoom extends DurableObject<CloudflareBindings> {
       this.broadcastTimer = undefined;
       for (const socket of this.ctx.getWebSockets()) socket.close(4004, "Room expired.");
       await this.ctx.storage.deleteAll();
+      this.hasRoomTable = false;
       return;
     }
+    this.closeUnauthenticated(now);
     if (state.mode === "bomb") {
       if (this.advanceBomb(state, now)) {
         this.commit(state);
