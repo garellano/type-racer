@@ -172,11 +172,13 @@
   font-size: 20px;
   font-variant-numeric: tabular-nums;
 }
-.derby-motion {
+.derby-motion,
+.derby-sound {
   padding: 10px 12px;
   font-size: 12px;
 }
-.derby-motion[aria-pressed="true"] {
+.derby-motion[aria-pressed="true"],
+.derby-sound[aria-pressed="true"] {
   background: #e7edda;
   border-color: #769461;
 }
@@ -211,6 +213,31 @@
   background: #214438;
   color: #f4f4db;
   padding: 12px 18px;
+  flex-wrap: wrap;
+}
+.derby-scene-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.derby-scene-sound {
+  padding: 6px 10px;
+  font-size: 11px;
+  color: #f4f4db;
+  background: #315d4b;
+  border-color: #7e9d88;
+  white-space: nowrap;
+}
+.derby-scene-sound:hover {
+  background: #426d58;
+}
+.derby-scene-sound[aria-pressed="true"] {
+  color: #193c31;
+}
+.derby-scene-sound[aria-pressed="true"]:hover {
+  background: #dbe7c9;
 }
 .derby-office-sign {
   font-size: 11px;
@@ -494,6 +521,11 @@
   }
   .derby-course-caption {
     padding-left: calc(88px + var(--derby-inset));
+  }
+}
+@media (pointer: coarse) {
+  .derby-scene-sound {
+    min-height: 44px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

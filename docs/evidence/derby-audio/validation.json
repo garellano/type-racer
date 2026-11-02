@@ -1,0 +1,20 @@
+{
+  "date": "2026-11-02",
+  "method": "Browser OfflineAudioContext at 44100 Hz, stereo, rendering the actual DerbyAudio implementation and committed MP3 assets through a real audio-node graph. A small adapter replaces only real-time context state/resume/close during offline rendering.",
+  "renderSeconds": 7,
+  "cases": {
+    "race": { "rms": 0.01588881427732697, "peak": 0.31907209753990173, "tailRms": 0 },
+    "finish": { "rms": 0.03017520045734614, "peak": 0.2987380921840668, "tailRms": 0 },
+    "muted": { "rms": 0, "peak": 0, "tailRms": 0 },
+    "restoredResult": { "rms": 0, "peak": 0, "tailRms": 0 },
+    "returnAfterHiddenFinish": { "rms": 0, "peak": 0, "tailRms": 0 }
+  },
+  "tailWindowSeconds": 0.5,
+  "browserChecks": [
+    "Both sound controls default off on a fresh page.",
+    "A user click unlocks, fetches, decodes, and enables the committed clips.",
+    "Toolbar and race-stage mute controls stay synchronized.",
+    "A complete nine-person round reaches its original final result with sound enabled.",
+    "Refreshing the finished round keeps its winner and resets sound off."
+  ]
+}

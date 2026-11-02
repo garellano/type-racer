@@ -24,6 +24,12 @@ The nine approved team likenesses sit in cushioned office chairs. Each has four 
 
 Time-based animation approaches the saved positions. Strides stop during the countdown, after the result, when the document is hidden, when reduced motion is enabled, and when leaving the game. The explicit reduced-motion control initially follows the browser preference. Interface controls use ordinary HTML buttons, checkboxes, and selects with visible focus; phase changes and the final invitation use status announcements. Participant names are inserted as text.
 
+## Sound
+
+Turn on the optional sound control for intermittent applause and cheers during the race, followed by a short original brass-style fanfare and an ovation at the finish. Sound starts off on each page load and requires the host's button gesture; other participants still only watch the shared screen. The sound and reduced-motion controls are independent.
+
+Muting, hiding the page, starting another round, or leaving immediately cancels active and scheduled audio. Old cheers never build a playback queue. A restored result or a finish that occurred while the page was hidden does not trigger a late fanfare. The audio changes presentation only and cannot change the saved winner. See [sound provenance, licensing, and playback details](derby-audio.md).
+
 ## Browser storage and recovery
 
 The host's roster is kept in **local storage** for reuse in the same browser. The frozen round and result are kept in **session storage** for the current tab, validated when read, and expire after two hours. Refreshing that tab restores the same planned race or final speaker without making another draw. Resetting for a new round is an explicit new draw.
@@ -46,7 +52,7 @@ Rule tests should cover unbiased integer sampling and winner eligibility, valida
 
 ### November 2, 2026 verification
 
-The repository checks pass with 71 tests across 10 files, including 17 Office Derby rule tests. Both production builds and generated Worker bindings were checked; no Worker configuration or server behavior changed.
+The repository checks pass with 93 tests across 11 files, including 17 Office Derby rule tests and 22 audio lifecycle tests. Both production builds and generated Worker bindings were checked; no Worker configuration or server behavior changed.
 
 Browser validation exercised the game chooser and direct entry, the nine-person lineup, custom names and avatar changes, case-insensitive duplicate rejection, a complete race, countdown refresh recovery, the same opening speaker after result refresh, replay, and Back to games. A 390-pixel frame exercised all 25 seats, the disabled capacity control, a 24-character unbroken name, reduced motion, countdown recovery, and the final invitation. All test participants were removed afterward.
 

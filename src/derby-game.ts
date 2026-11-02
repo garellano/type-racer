@@ -1,5 +1,6 @@
 import "./derby-game.css";
 import { z } from "zod";
+import { DerbyAudio } from "./derby-audio";
 import { CHARACTER_IDS, CHARACTERS, chooseCharacter, type CharacterId } from "../shared/characters";
 import {
   DERBY_TEAM,
@@ -16,6 +17,7 @@ import {
 const ROSTER_KEY = "type-racer:office-derby:roster:v1";
 const ROUND_KEY = "type-racer:office-derby:round:v1";
 const MAX_SEATS = 25;
+const SOUND_ERROR = "Sound could not start. Use the Sound button to try again.";
 const rosterStorageSchema = z.object({
   version: z.literal(1),
   reducedMotion: z.boolean().nullable(),
@@ -94,6 +96,10 @@ function setPose(target: Sprite, pose: number): void {
 
 /** A screen-shared game hosted entirely in this browser; it never joins a multiplayer room. */
 export class DerbyGame {
+  private readonly audio = new DerbyAudio({
+    applauseUrl: `${import.meta.env.BASE_URL}assets/derby/audio/office-applause-v1.mp3`,
+    cheerUrl: `${import.meta.env.BASE_URL}assets/derby/audio/office-cheer-v1.mp3`,
+  });
   private readonly abort = new AbortController();
   private rosterAbort = new AbortController();
   private readonly preference = matchMedia("(prefers-reduced-motion: reduce)");
@@ -113,6 +119,9 @@ export class DerbyGame {
   private destroyed = false;
   private lastPhase = "";
   private lastSecond = -1;
+  private soundEnabled = false;
+  private soundRequested = false;
+  private soundRevision = 0;
   private readonly heading = node("h1", "derby-title", "Office Derby");
   private readonly setup = node("details", "derby-setup");
   private readonly setupSummary = node("summary", "derby-setup-summary");
@@ -121,6 +130,8 @@ export class DerbyGame {
   private readonly count = node("span", "derby-count");
   private readonly start = button("Start derby ↗", "derby-start");
   private readonly motion = button("Reduce motion", "subtle derby-motion");
+  private readonly sound = button("Sound off", "subtle derby-sound");
+  private readonly sceneSound = button("Sound off", "derby-sound derby-scene-sound");
   private readonly notice = node("p", "derby-notice");
   private readonly clock = node("strong", "derby-clock", "Ready to roll");
   private readonly sceneClock = node("strong", "derby-scene-clock", "Chairs ready");
@@ -163,6 +174,10 @@ export class DerbyGame {
     if (this.destroyed) return;
     this.destroyed = true;
     this.active = false;
+    ++this.soundRevision;
+    this.soundRequested = false;
+    this.soundEnabled = false;
+    this.audio.destroy();
     this.stopScheduling();
     this.freezePoses();
     if (this.celebrationTimer !== null) clearTimeout(this.celebrationTimer);
@@ -230,6 +245,42 @@ export class DerbyGame {
     }
   }
 
+  private renderSoundControls(): void {
+    const pending = this.soundRequested && !this.soundEnabled;
+    const label = pending ? "Starting sound…" : this.soundEnabled ? "Sound on" : "Sound off";
+    for (const control of [this.sound, this.sceneSound]) {
+      control.textContent = label;
+      control.setAttribute("aria-pressed", String(this.soundEnabled));
+      control.setAttribute("aria-busy", String(pending));
+      control.setAttribute(
+        "aria-label",
+        pending
+          ? "Cancel sound activation"
+          : this.soundEnabled
+            ? "Mute office cheers and finish fanfare"
+            : "Enable office cheers and finish fanfare",
+      );
+    }
+    this.root.dataset.sound = pending ? "starting" : this.soundEnabled ? "on" : "off";
+  }
+
+  private async toggleSound(): Promise<void> {
+    if (this.notice.textContent === SOUND_ERROR) this.notice.hidden = true;
+    const requested = !this.soundRequested;
+    const revision = ++this.soundRevision;
+    this.soundRequested = requested;
+    this.soundEnabled = false;
+    this.renderSoundControls();
+    // Keep the unlock call in this button's gesture; async loading happens inside DerbyAudio.
+    const enabled = await this.audio.setEnabled(requested);
+    if (revision !== this.soundRevision || this.destroyed) return;
+    this.soundEnabled = enabled;
+    this.soundRequested = enabled;
+    this.renderSoundControls();
+    if (requested && !enabled) this.showNotice(SOUND_ERROR);
+    this.audio.update(this.round, Date.now(), this.active && !document.hidden);
+  }
+
   private build(): void {
     this.root.replaceChildren();
     const header = node("div", "derby-heading");
@@ -291,10 +342,14 @@ export class DerbyGame {
       },
       { signal: this.abort.signal },
     );
+    for (const control of [this.sound, this.sceneSound])
+      control.addEventListener("click", () => void this.toggleSound(), {
+        signal: this.abort.signal,
+      });
     const toolbar = node("div", "derby-toolbar");
     const timing = node("div", "derby-timing");
     timing.append(node("span", "derby-time-label", "Office hours, race pace"), this.clock);
-    toolbar.append(timing, this.motion, this.start);
+    toolbar.append(timing, this.sound, this.motion, this.start);
     this.notice.hidden = true;
     this.notice.setAttribute("role", "alert");
     this.status.setAttribute("role", "status");
@@ -302,10 +357,12 @@ export class DerbyGame {
     const scene = this.scene;
     scene.setAttribute("aria-label", "Office Derby race");
     const sceneHeader = node("div", "derby-scene-header");
+    const sceneTools = node("div", "derby-scene-tools");
+    sceneTools.append(this.sceneSound, this.sceneClock);
     sceneHeader.append(
       node("span", "derby-office-sign", "DAILY / MEETING ROOM →"),
       node("span", "derby-course-label", "THE OFFICE HALLWAY"),
-      this.sceneClock,
+      sceneTools,
     );
     const courseCaption = node("div", "derby-course-caption");
     courseCaption.append(node("span", "", "START"), node("span", "", "THE MIC ▦"));
@@ -343,6 +400,7 @@ export class DerbyGame {
 
   private clearResult(): void {
     if (!this.round || this.running) return;
+    this.audio.pause();
     this.round = null;
     this.lastPhase = "";
     this.results.hidden = true;
@@ -351,6 +409,7 @@ export class DerbyGame {
   }
 
   private rosterChanged(): void {
+    this.audio.pause();
     this.clearResult();
     this.notice.hidden = true;
     this.saveRoster();
@@ -501,6 +560,7 @@ export class DerbyGame {
     this.count.textContent = `${count} selected · 2–25 can race`;
     this.motion.setAttribute("aria-pressed", String(this.reduced));
     this.root.dataset.reducedMotion = String(this.reduced);
+    this.renderSoundControls();
   }
 
   private startRound(): void {
@@ -511,6 +571,7 @@ export class DerbyGame {
       return;
     }
     this.notice.hidden = true;
+    this.audio.pause();
     this.round = createDerbyRound(roster.data, Date.now());
     this.saveRound();
     this.saveRoster();
@@ -540,6 +601,7 @@ export class DerbyGame {
     this.stopScheduling();
     if (!this.active || this.destroyed) return;
     const now = Date.now();
+    this.audio.update(this.round, now, !document.hidden);
     if (!this.round) {
       this.updateControls();
       this.root.dataset.phase = "lobby";
@@ -660,6 +722,7 @@ export class DerbyGame {
   }
 
   private visibilityChanged = (): void => {
+    this.audio.pause();
     this.stopScheduling();
     this.freezePoses();
     this.root.dataset.celebrate = "false";
