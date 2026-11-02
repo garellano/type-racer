@@ -1,5 +1,15 @@
 # Multiplayer validation
 
+## Local security regression checks
+
+Run `npm ci`, `npm run types`, and `npm run check`. Tests run in the Workers runtime, including security regressions in `tests/security-http.test.ts` and `tests/security-room.test.ts`. Expected authentication, missing-room, and expiry refusals can appear as RPC exception logs during negative tests.
+
+For browser verification, run a local Worker and Vite frontend in separate terminals. For example, if port 8787 is already occupied, use `npx wrangler dev --local --ip 127.0.0.1 --port 8788` and `VITE_API_URL=http://127.0.0.1:8788 npm run dev`. Do not stop unrelated processes to free a port. Then run `node scripts/security-browser.mjs` with an installed Playwright, or set `TYPE_RACER_PLAYWRIGHT_MODULE` to an existing Playwright module path. `TYPE_RACER_CHROMIUM` optionally selects an installed Chromium executable; no browser is downloaded by the script. `TYPE_RACER_BROWSER_REPORT` optionally saves a report without room IDs or capabilities.
+
+The browser script checks all five games, including separate host/player sessions, narrow reduced-motion layout, countdown/result refresh, and local games' unchanged frozen plans with no room traffic. It blocks non-loopback HTTP requests and closes its browser in `finally`. Stop only the local servers started for this check, then inspect processes as required by `AGENTS.md`. Never point security or flood tests at production. The [security review](security-review.md) records results and practical limits.
+
+## Team trial
+
 Open the [game](https://garellano.github.io/type-racer/) on desktop browsers with physical keyboards. Start with two people, then test up to nine participants in the US, Ireland, and Mexico.
 
 1. Create a room and share its invitation. Everyone uses a distinct name. Check that participants and readiness match on all screens.

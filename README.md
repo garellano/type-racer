@@ -96,6 +96,6 @@ Pasting is blocked in the interface, but a modified client can automate typing. 
 
 Java reduces reliance on English or Spanish prose, but familiarity with Java and keyboard symbols can still affect results. All participants type identical characters, spaces, case, and punctuation within a round. Different modes are not speed benchmarks against each other.
 
-Rooms are unlisted and payloads/connections are bounded, but comprehensive abuse protection is outside this prototype. Add creation/message rate limits and quota monitoring before broad public promotion.
+Rooms are unlisted. Payloads, connections, pending authentication, and message rates are bounded. These controls reduce resource abuse; public room creation and repeated reconnects still need additional admission controls and quota monitoring before broad promotion. See the [security review](docs/security-review.md) for findings, verification, and remaining limits.
 
 Read [AGENTS.md](AGENTS.md) for standards and [the validation guide](docs/validation.md) for the team trial.

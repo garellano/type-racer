@@ -1,0 +1,49 @@
+{
+  "passed": true,
+  "localOnly": true,
+  "games": {
+    "cars": {
+      "sharedStart": true,
+      "sharedProgress": true,
+      "sharedResult": true,
+      "countdownRefresh": true,
+      "resultRefresh": true,
+      "narrowReducedMotion": true,
+      "inviteContainsRoomOnly": true
+    },
+    "sacks": {
+      "sharedStart": true,
+      "sharedProgress": true,
+      "sharedResult": true,
+      "countdownRefresh": true,
+      "resultRefresh": true,
+      "narrowReducedMotion": true,
+      "inviteContainsRoomOnly": true
+    },
+    "hot-mic": {
+      "savedFrozenPlan": true,
+      "runningRefresh": true,
+      "sameResultAfterRefresh": true,
+      "noRoomRequests": true,
+      "noRoomSockets": true,
+      "narrowReducedMotion": true
+    },
+    "derby": {
+      "savedFrozenPlan": true,
+      "runningRefresh": true,
+      "sameResultAfterRefresh": true,
+      "noRoomRequests": true,
+      "noRoomSockets": true,
+      "narrowReducedMotion": true
+    },
+    "bomb": {
+      "sharedStart": true,
+      "wiresRecovered": true,
+      "sharedOpeningSpeaker": true,
+      "resultRefresh": true,
+      "narrowReducedMotion": true
+    }
+  },
+  "pageErrors": [],
+  "blockedExternalRequests": 18
+}

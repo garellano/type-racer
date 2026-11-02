@@ -4,7 +4,7 @@ Selected October 9, 2026: GitHub Pages, a Cloudflare Worker, one SQLite-backed D
 
 ## Authority and persistence
 
-The Worker validates origins, paths, names, and bounded JSON. Random room IDs route to separate objects; all racers in one room reach the same active object. An Eastern North America location hint (`enam`) is an initial hypothesis for US, Ireland, and Mexico. [Location hints are best effort](https://developers.cloudflare.com/durable-objects/reference/data-location/); real regional measurements remain necessary.
+The Worker validates origins, paths, names, and bounded JSON. Random room IDs route to separate objects; all racers in one room reach the same active object. Reading an unknown room does not create a room table or schedule an alarm; only creation initializes storage. An Eastern North America location hint (`enam`) is an initial hypothesis for US, Ireland, and Mexico. [Location hints are best effort](https://developers.cloudflare.com/durable-objects/reference/data-location/); real regional measurements remain necessary.
 
 One SQLite row stores the bounded room state: players, credential hashes, race mode, language, character choices, epoch, passage, start, deadline, sequences, progress, and result. Every accepted update persists before sending state. Storage output gates hold network output until writes complete. No index adds a second per-progress write. Stored rooms without a language field default to English; old rooms default to Race cars and receive stable character choices; new writes preserve the selected mode, language, and characters.
 
@@ -26,7 +26,11 @@ The bounded state also saves the daily passage key and up to three recent choice
 8. `ping` / `pong` estimate clock offset and round-trip latency. Versioned snapshots include a server timestamp; older versions are discarded.
 9. Resume returns current state and sequence. A second connection for a session replaces the first, preventing duplicate racers.
 
-Shared runtime schemas live in `shared/protocol.ts`. Limits: 2 KiB WebSocket input, 1 KiB HTTP JSON, 24-character names, 500-character race input, nine typing racers or 25 bomb participants, up to fifty sockets. Session credentials travel in JSON and the first WebSocket message, never invitation URLs. Public snapshots omit secrets, hashes, and the bomb's private permutation.
+Shared runtime schemas live in `shared/protocol.ts`. Limits: 2 KiB WebSocket input, 1 KiB HTTP JSON, 24-character names, 500-character race input, nine typing racers or 25 bomb participants, up to fifty tracked sockets including connections awaiting a close handshake. Session credentials travel in JSON and the first WebSocket message, never invitation URLs. Public snapshots omit secrets, hashes, and the bomb's private permutation.
+
+Each new socket must authenticate within ten seconds. At most 25 pending handshakes remain open; another upgrade closes the oldest pending one, subject to the total socket cap. Authentication deadlines share the existing room alarm and cannot postpone a game event or expiry. Idle unauthenticated closures do not broadcast participant snapshots.
+
+A connection has a 40-message burst budget replenished at 20 messages per second, above the browser's ordinary ten progress updates per second. Every frame, including invalid commands and pings, consumes budget before room reads or command processing. Excess traffic closes the socket with a policy error; refresh reconnects. Attachments retain the budget through hibernation and transfer it when a live session is replaced. A completely closed connection can reconnect with a fresh budget, so this is not a global or durable per-player quota. Duplicate readiness is a no-op. HTTP requests and repeated upgrades still consume platform resources.
 
 Bomb rounds use the same authenticated transport with a `wire` command and server-owned selection, countdown, cuts, and finale phases. The roster freezes at host start, missing choices receive an automatic assignment, and an unbiased cryptographic permutation selects the opening speaker. See [the bomb design](bomb.md).
 
@@ -38,7 +42,7 @@ Clock estimates cannot eliminate asymmetric Internet routes. The first valid fin
 
 ## Lifecycle and cost
 
-One alarm handles countdown, deadline, or expiry. Rooms expire two hours after creation; sockets close and stored data is deleted. Broadcast timers exist only while updates await delivery. There is no permanent backend game loop.
+One alarm handles pending authentication, countdown, deadline, or expiry, whichever is earliest. Rooms expire two hours after creation; sockets close and stored data is deleted. Broadcast timers exist only while updates await delivery. There is no permanent backend game loop.
 
 At nine racers and ten updates per second, a 60-second race produces up to roughly 5,400 progress messages and 5,400 progress-row writes, plus lifecycle work. Batched snapshots produce up to 5,400 client deliveries. Outgoing WebSocket messages have no Durable Object request charge. Incoming message billing uses Cloudflare's documented conversion; messages are not equivalent to billed requests.
 
@@ -48,6 +52,6 @@ The initial deployment creates only a Worker, SQLite namespace, and Workers subd
 
 ## Validation
 
-Workers runtime tests cover synchronization, simultaneous finishes, prefix validation, stale packets, permissions, capacity, room isolation, hibernation, resume, reset, timeout, and expiry. A deployed smoke test checks actual WebSocket transport and countdown timing. Cross-region latency still requires the [team trial](validation.md).
+Workers runtime tests cover synchronization, simultaneous finishes, prefix validation, stale packets, permissions, capacity, room isolation, hibernation, resume, reset, timeout, and expiry. Security regressions also cover unknown-room storage, exact origins, streamed byte limits, cross-room sessions, pending authentication, connection caps, message budgets, and legacy attachments. Smoke scripts can check actual WebSocket transport and countdown timing against a local Worker. Cross-region latency still requires the [team trial](validation.md).
 
-Before broad public promotion, add creation/message throttling and quota monitoring. The current public prototype is intended for small invited standup sessions.
+Before broad public promotion, add HTTP creation/admission and reconnect throttling and quota monitoring. A malicious peer can still occupy the bounded connection pool by ignoring close frames. Origin checks protect browser requests, but command-line clients can supply an allowed Origin. The current public prototype is intended for small invited standup sessions. See the [security review](security-review.md).
