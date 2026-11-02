@@ -11,14 +11,14 @@
     <main class="app">
       <header class="masthead">
         <a class="brand" href="#">TYPE<span>RACER</span><span class="brand-mark">↗</span></a
-        ><span class="prototype">The standup circuit · v0.7.1</span>
+        ><span class="prototype">The standup circuit · v0.8.0</span>
       </header>
       <section id="entry" class="entry">
         <p class="eyebrow">A little competition. A better morning.</p>
         <h1>A little race.<br /><span>A shared start.</span></h1>
         <p class="intro">
-          Pick a typing race, a little suspense, or an automatic chair derby. One playful moment to
-          choose who opens standup. Every voice matters.
+          Pick a typing race, a little suspense, or an automatic game with the team. One playful
+          moment to choose who opens standup. Every voice matters.
         </p>
         <form id="entry-form">
           <fieldset id="entry-mode" class="mode-choice">
@@ -53,6 +53,14 @@
                 ><small>Pick the team. The chairs race themselves.</small></span
               >
             </label>
+            <label class="mode-card">
+              <input type="radio" name="mode" value="hot-mic" />
+              <span class="mode-art mode-hot-mic-art" aria-hidden="true"></span>
+              <span
+                ><strong>Hot Mic</strong
+                ><small>A flying mic. Two false pauses. Your opening voice.</small></span
+              >
+            </label>
           </fieldset>
           <label id="entry-name-label" for="name">Your name</label>
           <div class="entry-controls">
@@ -65,8 +73,8 @@
               autocomplete="nickname"
             /><button id="enter" type="submit">Create a room ↗</button>
           </div>
-          <p id="entry-derby-help" class="intro" hidden>
-            You choose who's here and run the race. Everyone else watches your shared screen.
+          <p id="entry-automatic-help" class="intro" hidden>
+            You choose who's here and start the game. Everyone else watches your shared screen.
           </p>
           <div id="entry-character-choice" class="character-choice" hidden>
             <p class="picker-label">
@@ -91,6 +99,7 @@
         </div>
       </section>
       <section id="derby-game" hidden aria-label="Office Derby"></section>
+      <section id="hot-mic-game" hidden aria-label="Hot Mic"></section>
       <section id="room-loading" class="room-loading" hidden aria-label="Joining your team">
         <p id="room-loading-status" role="status">Connecting to your team…</p>
         <button id="cancel-entry" type="button" class="subtle">Back to games</button>

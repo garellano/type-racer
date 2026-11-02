@@ -58,6 +58,9 @@
 .mode-derby-art {
   background: url("/assets/derby/chair-a-v2.webp") 0 0 / 400% 300% no-repeat;
 }
+.mode-hot-mic-art {
+  background: url("/assets/hot-mic.svg") center / contain no-repeat;
+}
 .character-choice {
   margin: 22px 0;
 }
