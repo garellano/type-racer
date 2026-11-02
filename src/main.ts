@@ -24,6 +24,13 @@ import { RaceScene } from "./race-scene";
 import { renderResults } from "./results";
 import { BombScene } from "./bomb-scene";
 import type { DerbyGame } from "./derby-game";
+import type { HotMicGame } from "./hot-mic-game";
+
+type AutomaticMode = "derby" | "hot-mic";
+
+function isAutomaticMode(mode: string): mode is AutomaticMode {
+  return mode === "derby" || mode === "hot-mic";
+}
 
 function element<E extends HTMLElement>(selector: string): E {
   const result = document.querySelector<E>(selector);
@@ -44,8 +51,11 @@ const leaveButton = element<HTMLButtonElement>("#leave");
 const languageSelect = element<HTMLSelectElement>("#language");
 const modeSelect = element<HTMLSelectElement>("#mode");
 const derbyRoot = element<HTMLElement>("#derby-game");
+const hotMicRoot = element<HTMLElement>("#hot-mic-game");
 let derbyGame: DerbyGame | undefined;
-let entryMode: GameMode | "derby" = "cars";
+let hotMicGame: HotMicGame | undefined;
+let automaticMode: AutomaticMode | null = null;
+let entryMode: GameMode | AutomaticMode = "cars";
 let entryCharacter: CharacterId = "sunbeam";
 let characterPicked = false;
 const entryPicker = new CharacterPicker(element("#entry-characters"), (id) => {
@@ -60,15 +70,17 @@ const lobbyPicker = new CharacterPicker(element("#lobby-characters"), (id) => {
 entryPicker.render(entryCharacter, true);
 element("#entry-mode").addEventListener("change", (event) => {
   if (!(event.target instanceof HTMLInputElement)) return;
-  entryMode = event.target.value === "derby" ? "derby" : gameModeSchema.parse(event.target.value);
+  entryMode = isAutomaticMode(event.target.value)
+    ? event.target.value
+    : gameModeSchema.parse(event.target.value);
   element("#entry-character-choice").hidden = entryMode !== "sacks";
-  const derby = entryMode === "derby";
-  element<HTMLInputElement>("#name").hidden = derby;
-  element<HTMLInputElement>("#name").required = !derby;
-  element("#entry-name-label").hidden = derby;
-  element("#entry-derby-help").hidden = !derby;
-  element<HTMLButtonElement>("#enter").textContent = derby
-    ? "Open Office Derby ↗"
+  const automatic = isAutomaticMode(entryMode);
+  element<HTMLInputElement>("#name").hidden = automatic;
+  element<HTMLInputElement>("#name").required = !automatic;
+  element("#entry-name-label").hidden = automatic;
+  element("#entry-automatic-help").hidden = !automatic;
+  element<HTMLButtonElement>("#enter").textContent = automatic
+    ? `Open ${entryMode === "derby" ? "Office Derby" : "Hot Mic"} ↗`
     : "Create a room ↗";
 });
 element<HTMLInputElement>("#name").addEventListener("input", (event) => {
@@ -84,7 +96,9 @@ const bombScene = new BombScene(element("#bomb-panel"), (cableId) => {
 const passage = element<HTMLElement>("#passage");
 const locationOptions = new URLSearchParams(location.hash.slice(1));
 const requestedRoom = locationOptions.get("room");
-const requestedDerby = locationOptions.get("game") === "derby" && !requestedRoom;
+const requestedGame = locationOptions.get("game");
+const requestedAutomatic =
+  requestedGame && isAutomaticMode(requestedGame) && !requestedRoom ? requestedGame : null;
 const roomId = roomIdSchema.safeParse(requestedRoom);
 let connection: RaceConnection | undefined;
 let session: Session | undefined;
@@ -105,35 +119,52 @@ function clearError(): void {
   errorLabel.textContent = "";
 }
 
-async function openDerby(): Promise<void> {
+async function openAutomatic(mode: AutomaticMode): Promise<void> {
+  automaticMode = mode;
   clearError();
   entry.hidden = true;
   game.hidden = true;
   roomLoading.hidden = true;
-  derbyRoot.hidden = false;
+  derbyRoot.hidden = mode !== "derby";
+  hotMicRoot.hidden = mode !== "hot-mic";
+  const root = mode === "derby" ? derbyRoot : hotMicRoot;
   connection?.close();
-  location.hash = new URLSearchParams({ game: "derby" }).toString();
+  location.hash = new URLSearchParams({ game: mode }).toString();
+  const backToGames = (): void => {
+    derbyGame?.destroy();
+    hotMicGame?.destroy();
+    derbyGame = undefined;
+    hotMicGame = undefined;
+    automaticMode = null;
+    location.hash = "";
+    location.reload();
+  };
   try {
-    if (!derbyGame) {
-      derbyRoot.textContent = "Getting the chairs ready…";
-      const { DerbyGame } = await import("./derby-game");
-      derbyGame = new DerbyGame(derbyRoot, () => {
-        derbyGame?.destroy();
-        derbyGame = undefined;
-        location.hash = "";
-        location.reload();
-      });
+    if (mode === "derby") {
+      if (!derbyGame) {
+        root.textContent = "Getting the chairs ready…";
+        const { DerbyGame } = await import("./derby-game");
+        derbyGame = new DerbyGame(root, backToGames);
+      }
+      derbyGame.show();
+    } else {
+      if (!hotMicGame) {
+        root.textContent = "Passing the mic around…";
+        const { HotMicGame } = await import("./hot-mic-game");
+        hotMicGame = new HotMicGame(root, backToGames);
+      }
+      hotMicGame.show();
     }
-    derbyGame.show();
     clearInterval(clockTimer);
     if (progressTimer !== undefined) clearTimeout(progressTimer);
     scene.destroy();
     bombScene.destroy();
   } catch (error: unknown) {
-    derbyRoot.hidden = true;
+    automaticMode = null;
+    root.hidden = true;
     entry.hidden = false;
     location.hash = "";
-    showError(error instanceof Error ? error.message : "Could not open Office Derby. Try again.");
+    showError(error instanceof Error ? error.message : "Could not open this game. Try again.");
   }
 }
 
@@ -211,8 +242,8 @@ element("#cancel-entry").addEventListener("click", () => {
 
 element<HTMLFormElement>("#entry-form").addEventListener("submit", (event) => {
   event.preventDefault();
-  if (entryMode === "derby" && !roomId.success) {
-    void openDerby();
+  if (isAutomaticMode(entryMode) && !roomId.success) {
+    void openAutomatic(entryMode);
     return;
   }
   const button = element<HTMLButtonElement>("#enter");
@@ -221,7 +252,7 @@ element<HTMLFormElement>("#entry-form").addEventListener("submit", (event) => {
     name: element<HTMLInputElement>("#name").value.trim(),
     ...(!roomId.success
       ? {
-          mode: entryMode === "derby" ? "cars" : entryMode,
+          mode: isAutomaticMode(entryMode) ? "cars" : entryMode,
           ...(entryMode === "sacks" ? { characterId: entryCharacter } : {}),
         }
       : {}),
@@ -521,16 +552,18 @@ window.addEventListener("pagehide", () => {
   scene.destroy();
   bombScene.destroy();
   derbyGame?.destroy();
+  hotMicGame?.destroy();
 });
 window.addEventListener("pageshow", (event) => {
   if (event.persisted) location.reload();
 });
 window.addEventListener("hashchange", () => {
-  if (derbyGame && new URLSearchParams(location.hash.slice(1)).get("game") !== "derby")
+  const options = new URLSearchParams(location.hash.slice(1));
+  if (automaticMode && (options.get("room") || options.get("game") !== automaticMode))
     location.reload();
 });
 
-if (requestedDerby) void openDerby();
+if (requestedAutomatic) void openAutomatic(requestedAutomatic);
 else if (roomId.success) {
   const saved = sessionStorage.getItem(`type-racer:${roomId.data}`);
   if (saved) {

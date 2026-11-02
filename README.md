@@ -4,6 +4,12 @@ A collection of short team games to choose who starts the daily standup.
 
 **[Play Type Racer](https://garellano.github.io/type-racer/)** · [Product concept](docs/concept.md) · [Multiplayer design](docs/multiplayer.md) · [Validation guide](docs/validation.md)
 
+## Hot Mic
+
+**[Play Hot Mic](https://garellano.github.io/type-racer/#game=hot-mic)** for an automatic microphone pass with **2–9 attendees**. Choose today's attendees from the established team, share your screen, and start a 13-second round. The mic picks up speed, makes two false pauses, then lands with a spotlight on the person who opens standup. Everyone else just watches.
+
+Every selected attendee has an equal chance, fixed by a cryptographic draw before the animation starts. Optional passing notes, office cheers, and a finish fanfare accompany the reveal. The game remembers this browser's attendee and character choices; refreshing the same tab recovers the same round and result for up to two hours. It runs in the host's browser with no additional service. See [Hot Mic rules and practical limits](docs/hot-mic.md).
+
 ## Office Derby
 
 **[Play Office Derby](https://garellano.github.io/type-racer/#game=derby)** for an automatic office-chair race with **2–25 participants**. The host selects today's team, chooses any of the nine established characters for each person, and shares their screen. Nobody else needs to open a link, join a room, or interact. A three-second countdown leads into an 18-second race; **the winner opens standup**.
